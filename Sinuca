@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<title>Sinuca</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e0b09; --brass:#c9a24b; --cream:#f1e9dc; --danger:#c0392b;
+    box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--cream);font-family:'Oswald',Arial Narrow,sans-serif;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+  #splash{position:fixed;inset:0;z-index:999;background:radial-gradient(circle at 50% 35%,#1a1410,#060504 75%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .6s ease;}
+  #splash.fadeout{opacity:0;pointer-events:none}
+  .splash-logo{font-size:40px;font-weight:700;letter-spacing:3px;color:var(--brass);text-shadow:0 0 18px rgba(201,162,75,.5),0 2px 0 #000;position:relative}
+  .splash-logo .flame{position:absolute;right:-30px;top:-10px;font-size:26px;filter:drop-shadow(0 0 8px rgba(255,120,30,.7));animation:flicker 1.4s ease-in-out infinite}
+  @keyframes flicker{0%,100%{transform:scale(1) rotate(-4deg)}50%{transform:scale(1.12) rotate(4deg)}}
+  .splash-by{font-size:12px;letter-spacing:5px;color:#9c8f7d}
+  .splash-loader{position:relative;width:56px;height:56px;margin-top:10px}
+  .loader-ring{position:absolute;inset:-8px;border:3px solid transparent;border-top-color:var(--brass);border-right-color:var(--brass);border-radius:50%;animation:spin 1s linear infinite}
+  #splashBall{animation:spin 2.2s linear infinite;border-radius:50%}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #app{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:8px}
+  @media (min-width:1000px){ #app{gap:12px} .hud,.topbar,.balltray,.table-wrap,.tut-bar{max-width:1100px!important} .footer-hint{max-width:1100px} }
+  .tut-bar{width:100%;max-width:920px;background:#12162a;border:1px solid #2a3260;border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:10px}
+  #tutText{flex:1;font-size:12px;color:var(--cream);line-height:1.4}
+  #tutProgress{display:flex;gap:4px;flex-shrink:0}
+  .tut-dot{width:7px;height:7px;border-radius:50%;background:#2a3260}
+  .tut-dot.done{background:var(--brass)}
+  #tutSkip{background:none;border:1px solid #3a281c;color:#9c8f7d;border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer;flex-shrink:0}
+  #tutSkip:hover{border-color:var(--danger);color:#e07a6b}
+  .hud{width:100%;max-width:920px;display:flex;flex-wrap:wrap;row-gap:6px;align-items:center;gap:10px;padding:4px}
+  .brand{font-size:19px;letter-spacing:2px;font-weight:700;color:var(--brass);flex-shrink:0}
+  .brand span{color:var(--danger)}
+  .power-wrap{flex:1;min-width:70px;display:flex;flex-direction:column;gap:3px}
+  .power-label{font-size:9px;letter-spacing:2.5px;color:#9c8f7d}
+  .power-bar{height:9px;border-radius:6px;background:#221812;border:1px solid #3a281c;overflow:hidden}
+  #powerFill{height:100%;width:0%;background:linear-gradient(90deg,#e0b84b,#e0522c);transition:width .05s linear}
+  .spin-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0}
+  #spinPad{position:relative;width:32px;height:32px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#cfcfcf 60%,#9a9a9a);box-shadow:0 0 0 2px #2c1509,0 2px 6px rgba(0,0,0,.5);cursor:pointer}
+  #spinDot{position:absolute;width:7px;height:7px;border-radius:50%;background:#c0392b;top:12.5px;left:12.5px;box-shadow:0 0 0 1.5px rgba(0,0,0,.4)}
+  .turn{font-size:11px;color:#c9bba7;white-space:nowrap;flex-shrink:0}
+  .tablebtn{background:#221812;border:1px solid #3a281c;color:var(--brass);font-size:15px;border-radius:6px;padding:6px 9px;cursor:pointer;flex-shrink:0;transition:background .15s,border-color .15s}
+  .tablebtn:hover{background:#2e2015;border-color:var(--brass)}
+  .hud-actions{display:flex;gap:6px;flex-shrink:0;align-items:center}
+  #exitBtn{color:#e07a6b;border-color:#5a2a20;display:flex;align-items:center;gap:5px;font-family:'Oswald',sans-serif;letter-spacing:.5px}
+  #exitBtn:hover{background:#3a1712;border-color:var(--danger)}
+  #moreMenu{position:absolute;top:38px;right:0;background:#1b1410;border:1px solid #3a281c;border-radius:10px;padding:6px;display:flex;flex-direction:column;gap:4px;z-index:30;min-width:175px;box-shadow:0 10px 24px rgba(0,0,0,.5)}
+  #moreMenu > button{background:#221812;border:1px solid #3a281c;color:var(--cream);font-family:inherit;font-size:13px;padding:8px 10px;border-radius:6px;cursor:pointer;text-align:left}
+  #moreMenu > button:hover{background:#2e2015}
+  #moreMenu > button.danger{color:#e07a6b;border-color:#5a2a20}
+  #emotePanel{position:static;background:none;border:none;box-shadow:none;padding:2px 0 0;display:flex;flex-wrap:wrap;gap:4px}
+  #emotePanel button{background:#221812;border:1px solid #3a281c;font-size:18px;cursor:pointer;padding:4px;border-radius:6px}
+  #emotePanel button:hover{background:#2a1e15}
+  .floaty{position:absolute;font-size:28px;pointer-events:none;animation:floatUp 1.3s ease-out forwards;z-index:15}
+  @keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-130px) scale(1.5)}}
+  .topbar{width:100%;max-width:920px;display:flex;align-items:center;gap:8px;background:linear-gradient(180deg,#1c2340,#11142a);border:1px solid #2a3260;border-radius:12px;padding:7px 10px}
+  .iconbtn{background:#2a7a3a;border:none;color:#fff;width:32px;height:32px;border-radius:8px;font-size:15px;cursor:pointer;flex-shrink:0}
+  .pbadge{display:flex;align-items:center;gap:7px;flex:1;min-width:0;padding:3px;border-radius:8px;transition:box-shadow .2s}
+  .pbadge.right{flex-direction:row-reverse;text-align:right}
+  .pbadge.active{box-shadow:0 0 0 1px var(--brass) inset,0 0 10px rgba(201,162,75,.3)}
+  .avatar{width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3a4a7a,#161b33);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#cfd8ff;border:2px solid var(--brass);flex-shrink:0}
+  .badgeinfo{min-width:0}
+  .starlvl{display:flex;align-items:center;gap:3px;font-size:10px;color:#f2c230}
+  .pbadge.right .starlvl{justify-content:flex-end}
+  .pnamebar{font-size:12px;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
+  .centerpill{background:#0d1024;border:1px solid #2a3260;border-radius:20px;padding:6px 14px;font-size:11px;color:#f2c230;font-weight:700;letter-spacing:.5px;white-space:nowrap;flex-shrink:0}
+  .clockwrap{flex-shrink:0}
+  .clockring{font-size:12px;font-weight:700;color:var(--brass);background:#221812;border:1px solid #3a281c;border-radius:10px;padding:5px 9px;min-width:26px;text-align:center;transition:color .2s,border-color .2s}
+  .clockring.warn{color:#ff5a3c;border-color:#ff5a3c}
+  .turnbanner{position:absolute;top:8px;left:50%;transform:translateX(-50%) translateY(-26px);background:#0d1024;border:1px solid var(--brass);color:var(--cream);padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.5px;opacity:0;transition:transform .35s cubic-bezier(.2,.8,.3,1),opacity .35s;z-index:25;pointer-events:none;white-space:nowrap}
+  .turnbanner.show{transform:translateX(-50%) translateY(0);opacity:1}
+  .balltray{width:100%;max-width:920px;display:flex;justify-content:center;flex-wrap:wrap;gap:5px;background:#12162a;border:1px solid #2a3260;border-radius:10px;padding:6px}
+  .balltray .slot{width:19px;height:19px;border-radius:50%;background:#232a4d;display:flex;align-items:center;justify-content:center;opacity:.4;font-size:9px;color:#8a93c0;font-weight:700;flex-shrink:0}
+  .balltray .slot.potted{opacity:1}
+  .balltray .slot canvas{width:19px;height:19px;border-radius:50%}
+  .balltray .slot.p0{box-shadow:0 0 0 2px var(--danger)}
+  .balltray .slot.p1{box-shadow:0 0 0 2px #2f6f9e}
+  .table-wrap{position:relative;width:100%;max-width:920px;line-height:0}
+  canvas#tbl{width:100%;height:auto;display:block;border-radius:10px;touch-action:none}
+  .footer-hint{font-size:12px;color:#9c8f7d;text-align:center;min-height:16px}
+
+  .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;
+    background:radial-gradient(circle at 30% 20%,#241a10,#0e0b09 55%),radial-gradient(circle at 75% 80%,#1c2a22,#0e0b09 60%);
+    background-size:200% 200%; animation:bgshift 12s ease-in-out infinite alternate;}
+  @keyframes bgshift{0%{background-position:0% 0%,100% 100%}100%{background-position:60% 40%,30% 60%}}
+  .panel{background:#1b1410;border:1px solid #3a281c;border-radius:16px;padding:22px;max-width:400px;width:100%;text-align:center;
+    display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.6);animation:panelIn .45s cubic-bezier(.2,.8,.3,1);
+    max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);overflow-y:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+  @keyframes panelIn{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+  .panel h2{margin:0;color:var(--brass);letter-spacing:1px;font-weight:700;font-size:20px}
+  .panel p{margin:0;font-size:12.5px;color:#c9bba7;line-height:1.5}
+  input[type=text]{background:#221812;border:1px solid #3a281c;color:var(--cream);font-family:inherit;font-size:14px;padding:10px;border-radius:8px;outline:none;text-align:center}
+  input[type=text]:focus{border-color:var(--brass)}
+  .btn{background:linear-gradient(180deg,#e0c37a,#c9a24b);border:none;color:#1b1410;font-family:inherit;font-weight:700;letter-spacing:1px;padding:12px;border-radius:8px;cursor:pointer;font-size:13.5px;
+    opacity:0;transform:translateY(8px);animation:btnIn .4s ease forwards;transition:transform .15s,box-shadow .15s}
+  .btn:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 8px 18px rgba(201,162,75,.35)}
+  .btn:active{transform:translateY(0) scale(.98)}
+  .btn.secondary{background:#2a1e15;color:var(--cream);border:1px solid #4a2513}
+  .btn.tile-green{background:linear-gradient(180deg,#6fcf6f,#2e8b3e);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.3)}
+  .btn.tile-blue{background:linear-gradient(180deg,#5aa7f2,#1d5fae);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.3)}
+  .btn.tile-purple{background:linear-gradient(180deg,#a06ae8,#6a2fb0);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.3)}
+  .btn.tile-teal{background:linear-gradient(180deg,#4fd3c4,#1a8f82);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.3)}
+  .btn.tile-orange{background:linear-gradient(180deg,#f2a154,#d9691f);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.3)}
+  .btn.tile-red{background:linear-gradient(180deg,#e85a5a,#a01f1f);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.3)}
+  .btn.tile-gold{background:linear-gradient(180deg,#f6dc82,#c9a24b);color:#1b1410;text-shadow:0 1px 0 rgba(255,255,255,.35)}
+  .btn.ghost{background:transparent;color:#9c8f7d;border:1px solid #3a281c;box-shadow:none}
+  @keyframes btnIn{to{opacity:1;transform:none}}
+  #modeButtons .btn:nth-child(1){animation-delay:.03s} #modeButtons .btn:nth-child(2){animation-delay:.08s}
+  #modeButtons .btn:nth-child(3){animation-delay:.13s} #modeButtons .btn:nth-child(4){animation-delay:.18s}
+  #modeButtons .btn:nth-child(5){animation-delay:.23s} #modeButtons .btn:nth-child(6){animation-delay:.28s}
+  #modeButtons .btn:nth-child(7){animation-delay:.33s} #modeButtons .btn:nth-child(8){animation-delay:.38s}
+  select{background:#221812;color:var(--cream);border:1px solid #4a2513;border-radius:6px;padding:6px;font-family:inherit;font-size:13px}
+  .row{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
+  .hidden{display:none!important}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .swatch{border:2px solid #3a281c;border-radius:10px;padding:6px;cursor:pointer;display:flex;flex-direction:column;gap:5px;align-items:center;transition:border-color .15s,transform .15s;position:relative}
+  .swatch.locked{opacity:.55}
+  .swatch.locked:hover{opacity:.85}
+  .pricetag{position:absolute;top:-6px;right:-6px;background:#0d1024;border:1px solid var(--brass);border-radius:10px;padding:2px 6px;font-size:10px;color:var(--cream)}
+  .swatch.shake{animation:shake .4s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+  .currency-bar{display:flex;justify-content:center;gap:4px;font-size:13px;color:var(--cream);background:#0d1024;border:1px solid #2a3260;border-radius:16px;padding:5px 12px;align-self:center}
+  .currency-bar b{color:var(--brass)}
+  .swatch:hover{transform:translateY(-2px)}
+  .swatch.selected{border-color:var(--brass);box-shadow:0 0 10px rgba(201,162,75,.3)}
+  .swatch canvas{border-radius:4px}
+  .swatch .felt{width:100%;height:34px;border-radius:5px}
+  .swatch span{font-size:10.5px;color:#c9bba7;letter-spacing:.5px}
+  .sectitle{font-size:10px;letter-spacing:2px;color:#9c8f7d;text-align:left;margin:2px 0 -4px}
+  .statrow{display:flex;justify-content:space-between;font-size:13px;padding:6px 2px;border-bottom:1px solid #2a1f16}
+  .statrow b{color:var(--brass)}
+  .ach{border:2px solid #3a281c;border-radius:10px;padding:8px 6px;text-align:center;opacity:.45}
+  .ach.unlocked{opacity:1;border-color:var(--brass);box-shadow:0 0 10px rgba(201,162,75,.25)}
+  .ach-icon{font-size:22px}
+  .ach-name{font-size:10.5px;color:var(--cream);margin-top:3px;font-weight:700}
+  .ach-desc{font-size:9px;color:#9c8f7d;margin-top:2px}
+  .btn.pulse{animation:btnIn .4s ease forwards, pulseGlow 1.6s ease-in-out .5s infinite}
+  @keyframes pulseGlow{0%,100%{box-shadow:0 0 0 rgba(201,162,75,0)}50%{box-shadow:0 0 16px rgba(201,162,75,.7)}}
+</style>
+</head>
+<body>
+<div id="splash">
+  <div class="splash-logo">SINUCA<span class="flame">🔥</span></div>
+  <div class="splash-by">BY THETINKERSFIVE</div>
+  <div class="splash-loader"><div class="loader-ring"></div><canvas id="splashBall" width="56" height="56"></canvas></div>
+</div>
+<div id="app">
+  <div class="topbar">
+    <button class="iconbtn" title="Menu">☰</button>
+    <div class="pbadge" id="pbadge0">
+      <div class="avatar" id="avatar0">1</div>
+      <div class="badgeinfo"><div class="starlvl">★ <span id="pscore0">0</span></div><div class="pnamebar" id="pname0">Jogador 1</div></div>
+    </div>
+    <div class="clockwrap hidden" id="clockWidget"><div class="clockring" id="clockRing"><span id="clockVal">18</span>s</div></div>
+    <div class="centerpill" id="turnInfo">—</div>
+    <div class="pbadge right" id="pbadge1">
+      <div class="avatar" id="avatar1">2</div>
+      <div class="badgeinfo"><div class="starlvl">★ <span id="pscore1">0</span></div><div class="pnamebar" id="pname1">Jogador 2</div></div>
+    </div>
+  </div>
+  <div class="balltray" id="ballTray"></div>
+  <div class="hud">
+    <div class="brand">SINUCA<span>.</span></div>
+    <div class="power-wrap"><div class="power-label">FORÇA</div><div class="power-bar"><div id="powerFill"></div></div></div>
+    <div class="spin-wrap"><div class="power-label">EFEITO</div><div id="spinPad" title="Toque de bola"><div id="spinDot"></div></div></div>
+    <div class="hud-actions">
+      <div style="position:relative">
+        <button class="tablebtn" id="moreBtn" title="Mais opções">⋮</button>
+        <div id="moreMenu" class="hidden">
+          <button id="emoteBtn">😊 Reações</button>
+          <div id="emotePanel" class="hidden"></div>
+          <button id="tableBtn">🎨 Trocar mesa</button>
+          <button id="muteBtn">🔊 Som: Ligado</button>
+          <button id="exitBtn" class="danger">🚪 Sair da partida</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="tut-bar hidden" id="tutBar">
+    <div id="tutText"></div>
+    <div id="tutProgress"></div>
+    <button id="tutSkip">Pular ✕</button>
+  </div>
+  <div class="table-wrap"><canvas id="tbl" width="900" height="450"></canvas></div>
+  <div class="footer-hint" id="hint">Escolha um modo para começar</div>
+</div>
+
+<div class="overlay hidden" id="exitOverlay">
+  <div class="panel" style="max-width:320px">
+    <h2>Sair da partida?</h2>
+    <p>Você volta para o menu principal e o placar desta partida é perdido.</p>
+    <button class="btn" id="exitConfirm" style="opacity:1;animation:none">Sair para o menu</button>
+    <button class="btn ghost" id="exitCancel" style="opacity:1;animation:none">Cancelar</button>
+  </div>
+</div>
+
+<div class="overlay" id="menu">
+  <div class="panel" id="menuHome">
+    <div style="display:flex;justify-content:center"><div class="avatar" style="width:56px;height:56px;font-size:24px">🎱</div></div>
+    <h2>SINUCA — 8 Ball &amp; 9 Ball</h2>
+    <div class="starlvl" style="justify-content:center;font-size:12px">★ ★ ★ Mesa profissional</div>
+    <div class="currency-bar">🪙 <b class="coinsVal">0</b> &nbsp; 💎 <b class="gemsVal">0</b></div>
+    <input type="text" id="nameInput" placeholder="Seu nome" maxlength="14">
+    <div class="row" id="modeButtons" style="flex-direction:column">
+      <button class="btn tile-green" data-mode="local">2 Jogadores (mesmo aparelho)</button>
+      <button class="btn tile-blue" data-mode="bot">Contra Bot</button>
+      <button class="btn tile-gold" data-mode="nine">🎱 9 Ball (bola 9)</button>
+      <button class="btn tile-purple" data-mode="clock">⏱ Contra o Relógio</button>
+      <button class="btn tile-teal" data-mode="practice">🎯 Treino Livre</button>
+      <button class="btn tile-orange" data-mode="online">Online (link com amigo)</button>
+      <button class="btn tile-red" data-mode="tournament">🏆 Torneio Local (3 bots)</button>
+      <button class="btn ghost" id="openCustomize">🎱 Personalizar taco e mesa</button>
+      <button class="btn ghost" id="openTutorial">🎓 Tutorial interativo</button>
+      <button class="btn ghost" id="openStats">📊 Estatísticas e conquistas</button>
+    </div>
+    <div class="row hidden" id="localOpts" style="flex-direction:column">
+      <input type="text" id="name2Input" placeholder="Nome do adversário" maxlength="14">
+      <button class="btn secondary" id="localStart" style="opacity:1;animation:none">Começar</button>
+    </div>
+    <div class="row hidden" id="botOpts">
+      <span style="font-size:12px;color:#c9bba7">Dificuldade:</span>
+      <select id="botLevel"><option value="easy">Fácil</option><option value="medium" selected>Médio</option><option value="hard">Difícil</option></select>
+      <button class="btn secondary" id="botStart">Começar</button>
+    </div>
+    <div class="row hidden" id="nineOpts" style="flex-direction:column">
+      <p>9 Ball: acerte sempre a <b>menor bola da mesa</b> primeiro. Encaçapar a bola 9 numa tacada legal vence a partida. Falta = bola na mão para o adversário.</p>
+      <input type="text" id="nameNineInput" placeholder="Nome do adversário" maxlength="14">
+      <button class="btn secondary" id="nineLocal" style="opacity:1;animation:none">Jogar com amigo (mesmo aparelho)</button>
+      <div class="row">
+        <span style="font-size:12px;color:#c9bba7">Bot:</span>
+        <select id="nineLevel"><option value="easy">Fácil</option><option value="medium" selected>Médio</option><option value="hard">Difícil</option></select>
+        <button class="btn secondary" id="nineBot" style="opacity:1;animation:none">Contra Bot</button>
+      </div>
+    </div>
+    <div class="row hidden" id="onlineOpts" style="flex-direction:column">
+      <p id="onlineStatus">Copie o link do navegador e envie ao seu amigo. A partida começa quando ele abrir.</p>
+    </div>
+  </div>
+  <div class="panel hidden" id="menuCustomize">
+    <h2>Personalização</h2>
+    <div class="currency-bar">🪙 <b class="coinsVal">0</b> &nbsp; 💎 <b class="gemsVal">0</b></div>
+    <div class="sectitle">TACO</div>
+    <div class="grid" id="cueGrid"></div>
+    <div class="sectitle">MESA</div>
+    <div class="grid" id="tableGrid"></div>
+    <button class="btn secondary" id="customizeBack" style="opacity:1;animation:none">Voltar</button>
+  </div>
+  <div class="panel hidden" id="menuStats">
+    <h2>Estatísticas</h2>
+    <div id="statsBody"></div>
+    <div class="sectitle">CONQUISTAS</div>
+    <div class="grid" id="achGrid"></div>
+    <button class="btn secondary" id="statsBack" style="opacity:1;animation:none">Voltar</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="winOverlay">
+  <div class="panel">
+    <h2 id="winTitle">Fim de jogo</h2>
+    <p id="winText"></p>
+    <button class="btn" id="playAgain" style="opacity:1;animation:none">Jogar novamente</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="dailyOverlay">
+  <div class="panel" style="max-width:320px">
+    <div style="display:flex;justify-content:center"><div class="avatar" style="width:52px;height:52px;font-size:24px">🎁</div></div>
+    <h2>Recompensa Diária</h2>
+    <p id="dailyText"></p>
+    <button class="btn" id="dailyClose" style="opacity:1;animation:none">Resgatar</button>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+const cv = document.getElementById('tbl'), ctx = cv.getContext('2d');
+const W = 900, H = 450, RAIL = 34, R = 11;
+const pf = document.getElementById('powerFill'), hint = document.getElementById('hint'), turnInfo = document.getElementById('turnInfo');
+const menu = document.getElementById('menu'), menuHome = document.getElementById('menuHome'), menuCustomize = document.getElementById('menuCustomize');
+const botOpts = document.getElementById('botOpts'), onlineOpts = document.getElementById('onlineOpts');
+const winOverlay = document.getElementById('winOverlay'), winTitle = document.getElementById('winTitle'), winText = document.getElementById('winText');
+let shotCount = 1;
+let nineBall = false, inHand = false, dragCue = false, firstHitId = null, shotInfo = { lowest:null, ownLeft:true };
+
+function fitCanvas(){
+  const rect = cv.parentElement.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio||1, 2);
+  cv.style.width = rect.width+'px'; cv.style.height = (rect.width*H/W)+'px';
+  cv.width = W*dpr; cv.height = H*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+window.addEventListener('resize', fitCanvas);
+
+/* ---------- Audio ---------- */
+let actx;
+let muted = false;
+try{ muted = localStorage.getItem('snk_muted')==='1'; }catch(e){}
+function audio(){ if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); return actx; }
+let noiseBuf;
+function noiseBuffer(){
+  if(noiseBuf) return noiseBuf;
+  const ac = audio(), len = ac.sampleRate*0.4;
+  noiseBuf = ac.createBuffer(1, len, ac.sampleRate);
+  const d = noiseBuf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/len, 2);
+  return noiseBuf;
+}
+function rnd(a,b){ return a+Math.random()*(b-a); }
+function playClick(freq, gainV, dur, type, freqEnd){
+  if(muted) return;
+  const ac = audio(); const o = ac.createOscillator(), g = ac.createGain();
+  o.type = type||'sine'; o.frequency.setValueAtTime(freq, ac.currentTime);
+  if(freqEnd) o.frequency.exponentialRampToValueAtTime(freqEnd, ac.currentTime+dur);
+  g.gain.setValueAtTime(gainV, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+dur);
+  o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime+dur);
+}
+function playNoise(freqCenter, q, gainV, dur, type){
+  if(muted) return;
+  const ac = audio(); const src = ac.createBufferSource(); src.buffer = noiseBuffer();
+  const filt = ac.createBiquadFilter(); filt.type = type||'bandpass'; filt.frequency.value=freqCenter; filt.Q.value=q;
+  const g = ac.createGain(); g.gain.setValueAtTime(gainV, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+dur);
+  src.connect(filt); filt.connect(g); g.connect(ac.destination); src.start(); src.stop(ac.currentTime+dur);
+}
+let rollSrc, rollGain;
+function initRoll(){
+  if(rollSrc) return; const ac = audio();
+  rollSrc = ac.createBufferSource(); rollSrc.buffer = noiseBuffer(); rollSrc.loop = true;
+  const filt = ac.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=450;
+  rollGain = ac.createGain(); rollGain.gain.value = 0;
+  rollSrc.connect(filt); filt.connect(rollGain); rollGain.connect(ac.destination);
+  rollSrc.start();
+}
+function updateRoll(totalSpeed){ if(!rollGain) return; rollGain.gain.setTargetAtTime(muted?0:Math.min(totalSpeed/55,0.11), actx.currentTime, 0.09); }
+function sndStrike(power){
+  const p = Math.max(0.18, power);
+  playNoise(rnd(2200,2800), 4, 0.22*p, 0.035, 'highpass');
+  playNoise(1700, 2.2, 0.16*p, 0.07, 'bandpass');
+  playClick(rnd(820,940), 0.2*p, 0.05, 'triangle', 480);
+}
+function sndBall(speed){
+  const v = Math.min(speed/20,1), f = rnd(3500,4500);
+  playNoise(f, 9, 0.12+0.55*v, 0.03);
+  playClick(f*0.9, 0.08+0.22*v, 0.02, 'sine', f*0.55);
+  if(v>0.45) playNoise(1100, 3, 0.05+0.15*v, 0.05);
+}
+function sndCushion(speed){
+  const v = Math.min(speed/16,1);
+  playNoise(rnd(260,340), 1.3, 0.1+0.3*v, 0.15, 'bandpass');
+  playNoise(90, 1, 0.05+0.15*v, 0.2, 'lowpass');
+}
+function vibrate(pattern){ try{ if(!muted && navigator.vibrate) navigator.vibrate(pattern); }catch(e){} }
+function sndPocket(){
+  playClick(rnd(200,240), 0.3, 0.15, 'sine', 150);
+  setTimeout(()=>playNoise(650,1.8,0.22,0.22,'bandpass'),35);
+  setTimeout(()=>playNoise(300,1.5,0.15,0.2,'bandpass'),110);
+  setTimeout(()=>playClick(120,0.28,0.35,'sine'),165);
+  vibrate(18);
+}
+function sndWin(){ [660,880,1100,1320].forEach((f,i)=>setTimeout(()=>{ playClick(f,0.3,0.4,'triangle'); playNoise(f*1.5,4,0.08,0.2); },i*130)); vibrate([40,60,40,60,80]); }
+function sndClick(){ playClick(1400,0.06,0.03,'sine'); }
+function sndTurn(){ playClick(700,0.14,0.12,'sine',1050); }
+function sndTick(){ playClick(1600,0.12,0.05,'square'); }
+
+/* ---------- Sprites das bolas ---------- */
+const BALL_DEF = [
+  {n:1,c:'#f2c230'},{n:2,c:'#1f63c8'},{n:3,c:'#d1222b'},{n:4,c:'#6a2fb0'},
+  {n:5,c:'#e8791d'},{n:6,c:'#177a3e'},{n:7,c:'#7a2323'},{n:8,c:'#141414'},
+  {n:9,c:'#f2c230',stripe:true},{n:10,c:'#1f63c8',stripe:true},{n:11,c:'#d1222b',stripe:true},{n:12,c:'#6a2fb0',stripe:true},
+  {n:13,c:'#e8791d',stripe:true},{n:14,c:'#177a3e',stripe:true},{n:15,c:'#7a2323',stripe:true}
+];
+function makeSprite(color, num, stripe, isCue){
+  const d = R*2*4, cvs = document.createElement('canvas'); cvs.width=cvs.height=d;
+  const c = cvs.getContext('2d'), rad = d/2;
+  c.save(); c.beginPath(); c.arc(rad,rad,rad-1,0,7); c.clip();
+  c.fillStyle = isCue? '#f7f4ec' : '#fff'; c.fillRect(0,0,d,d);
+  if(!isCue){
+    if(stripe){ c.fillStyle = color; c.fillRect(0, rad-rad*0.62, d, rad*1.24); }
+    else { c.fillStyle = color; c.fillRect(0,0,d,d); }
+    c.beginPath(); c.arc(rad,rad,rad*0.42,0,7); c.fillStyle='#f7f4ec'; c.fill();
+    c.fillStyle = color==='#141414'? '#f2c230' : '#141414';
+    c.font = '700 '+(rad*0.5)+'px Oswald, Arial'; c.textAlign='center'; c.textBaseline='middle';
+    c.lineWidth = rad*0.08; c.strokeStyle = color==='#141414'? 'rgba(0,0,0,.5)' : 'rgba(255,255,255,.6)';
+    c.strokeText(num, rad, rad+1);
+    c.fillText(num, rad, rad+1);
+  }
+  const grad = c.createRadialGradient(rad*0.68,rad*0.62,rad*0.15,rad*0.7,rad*0.7,rad*1.3);
+  grad.addColorStop(0,'rgba(255,255,255,0.85)'); grad.addColorStop(0.25,'rgba(255,255,255,0.08)');
+  grad.addColorStop(0.7,'rgba(0,0,0,0.10)'); grad.addColorStop(1,'rgba(0,0,0,0.55)');
+  c.fillStyle = grad; c.fillRect(0,0,d,d);
+  c.restore();
+  c.beginPath(); c.arc(rad,rad,rad-1,0,7); c.lineWidth=2; c.strokeStyle='rgba(0,0,0,0.25)'; c.stroke();
+  return cvs;
+}
+let sprites = { cue: makeSprite('#fff',0,false,true) };
+BALL_DEF.forEach(b=> sprites[b.n]=makeSprite(b.c, b.n, b.stripe, false));
+
+/* ---------- Skins de taco, mesa e bolas ---------- */
+const CUE_SKINS = [
+  {id:'carvalho', name:'Carvalho Torneio', wood:['#d9b077','#8a5a2b','#432408'], wrap:'#241a12', rings:'#c9a24b', tip:'#2f6f9e', price:0},
+  {id:'grafite',  name:'Grafite Fosco',    wood:['#6b6b6f','#3a3a3d','#141416'], wrap:'#0c0c0c', rings:'#9a9a9a', tip:'#2b6cb0', price:0},
+  {id:'ebano',    name:'Ébano & Nácar',    wood:['#2e2e2e','#161616','#050505'], wrap:'#eae6da', rings:'#c9a24b', tip:'#1d4e89', price:{coins:150}},
+  {id:'snooker',  name:'Snooker Clássico', wood:['#e8c98a','#c9a24b','#6b3f14'], wrap:'#3b1d0e', rings:'#eae6da', tip:'#2f6f9e', price:{coins:150}},
+  {id:'carbono',  name:'Fibra de Carbono', wood:['#4a4f55','#24272b','#0c0d0f'], wrap:'#0a0c0d', rings:'#7fd1c9', tip:'#1d4e89', price:{coins:220}},
+  {id:'marfim',   name:'Marfim Imperial',  wood:['#f2ecd9','#d8cdae','#a8967a'], wrap:'#2a1c10', rings:'#c9a24b', tip:'#7a1730', price:{coins:220}},
+  {id:'mogno',    name:'Mogno Escuro',     wood:['#8a5636','#4a2a16','#26140a'], wrap:'#1a1006', rings:'#e8c98a', tip:'#2f6f9e', price:{coins:180}},
+  {id:'racing',   name:'Racing Vermelho',  wood:['#3a3d42','#1d1f22','#0a0b0c'], wrap:'#150507', rings:'#d1222b', tip:'#d1222b', price:{gems:3}},
+  {id:'rubro',    name:'Fúria Rubro-Negra',team:true, wood:['#c0392b','#c0392b','#141414'], wrap:'#0d0d0d', rings:'#f2c230', tip:'#f4f1ea', price:{coins:260}},
+  {id:'verdao',   name:'Verdão Imperial',  team:true, wood:['#177a3e','#177a3e','#f4f1ea'], wrap:'#0d3a1f', rings:'#f2c230', tip:'#177a3e', price:{coins:260}},
+  {id:'raposa',   name:'Raposa Azul',      team:true, wood:['#1f63c8','#1f63c8','#f4f1ea'], wrap:'#0d2a5c', rings:'#c9a24b', tip:'#1f63c8', price:{coins:260}},
+  {id:'tricolor', name:'Tricolor Paulista',team:true, wood:['#c0392b','#c0392b','#141414'], wrap:'#f4f1ea', rings:'#141414', tip:'#141414', price:{coins:300}},
+  {id:'colorado', name:'Colorado Gaúcho',  team:true, wood:['#c0392b','#c0392b','#f4f1ea'], wrap:'#c0392b', rings:'#f4f1ea', tip:'#f4f1ea', price:{coins:260}},
+  {id:'galo',     name:'Galo Mineiro',     team:true, wood:['#141414','#141414','#f4f1ea'], wrap:'#141414', rings:'#c9c9c9', tip:'#f4f1ea', price:{gems:4}},
+  {id:'prata',    name:'Prata Polida',     wood:['#e2e6ea','#a8b0b8','#5a636b'], wrap:'#1d2126', rings:'#2b6cb0', tip:'#1d4e89', price:{coins:240}},
+  {id:'jade',     name:'Jade Oriental',    wood:['#7fcf9e','#2f8a5a','#123d28'], wrap:'#0c2418', rings:'#f2c230', tip:'#2f8a5a', price:{coins:260}},
+  {id:'vulcao',   name:'Vulcão',           wood:['#2b2b2b','#5a2a12','#e8791d'], wrap:'#0d0d0d', rings:'#e8791d', tip:'#d1222b', price:{coins:280}},
+  {id:'artico',   name:'Gelo Ártico',      wood:['#eaf6fb','#bfe3f0','#7fb8cf'], wrap:'#1d3b47', rings:'#eaf6fb', tip:'#2b6cb0', price:{gems:3}},
+  {id:'nebulosa', name:'Nebulosa',         wood:['#2a1a4a','#5a2f8a','#8a4fd9'], wrap:'#120a24', rings:'#8a4fd9', tip:'#c9a24b', price:{gems:4}},
+  {id:'lendario', name:'Dourado Lendário', wood:['#fff2c0','#e0b84b','#a67c1f'], wrap:'#2a1f0a', rings:'#fff2c0', tip:'#141414', price:{gems:6}}
+];
+const TABLE_SKINS = [
+  {id:'torneio', name:'Verde Torneio',      felt:['#12734f','#0a4a38'], rail:['#5a3018','#2c1509'], rim:'#c9a24b'},
+  {id:'azul',    name:'Azul Profissional',  felt:['#1d5f8a','#0f3a56'], rail:['#2b2b2e','#131315'], rim:'#d8d8d8'},
+  {id:'vinho',   name:'Vinho Royal',        felt:['#7a1730','#4a0d1d'], rail:['#241512','#120a08'], rim:'#c9a24b'},
+  {id:'ardosia', name:'Ardósia Cinza',      felt:['#4b5560','#2c333a'], rail:['#3a2c22','#1c150f'], rim:'#9fb3c8'},
+  {id:'onix',    name:'Ônix Preto',         felt:['#242424','#0c0c0c'], rail:['#161616','#040404'], rim:'#c9a24b'},
+  {id:'deserto', name:'Areia Deserto',      felt:['#c2a464','#8a6d3b'], rail:['#4a2e12','#2a1808'], rim:'#241a10'},
+  {id:'caribe',  name:'Turquesa Caribe',    felt:['#1a9e94','#0c5a54'], rail:['#123b3a','#08201f'], rim:'#e8c98a'},
+  {id:'roxo',    name:'Roxo Imperial',      felt:['#5b2a86','#331755'], rail:['#241033','#120819'], rim:'#c9a24b'}
+];
+let cueSkinIdx = 0, tableSkinIdx = 0;
+let coins = 220, gems = 4, ownedCues = [0,1];
+let isNewPlayer = false;
+function loadEconomy(){
+  try{
+    const c = localStorage.getItem('snk_coins'), g = localStorage.getItem('snk_gems'), o = localStorage.getItem('snk_owned');
+    isNewPlayer = (c===null);
+    if(c!==null) coins = parseInt(c)||0;
+    if(g!==null) gems = parseInt(g)||0;
+    if(o!==null) ownedCues = JSON.parse(o);
+  }catch(e){}
+}
+function saveEconomy(){ try{ localStorage.setItem('snk_coins',coins); localStorage.setItem('snk_gems',gems); localStorage.setItem('snk_owned',JSON.stringify(ownedCues)); }catch(e){} }
+function checkDailyReward(){
+  try{
+    const today = new Date().toDateString();
+    const last = localStorage.getItem('snk_lastdaily');
+    if(last===today) return;
+    let streak = parseInt(localStorage.getItem('snk_streak'))||0;
+    if(last){ const diff = Math.round((new Date(today)-new Date(last))/86400000); streak = diff===1? streak+1 : 1; }
+    else streak = 1;
+    streak = Math.min(streak,7);
+    const reward = 25 + streak*10;
+    coins += reward;
+    const gemBonus = streak>=7 ? 2 : 0; gems += gemBonus;
+    localStorage.setItem('snk_lastdaily', today); localStorage.setItem('snk_streak', streak);
+    saveEconomy(); updateEconomyUI();
+    stats.dailyStreakBest = Math.max(stats.dailyStreakBest||0, streak); saveStats(); checkAchievements();
+    document.getElementById('dailyText').textContent = 'Dia '+streak+' de sequência! Você ganhou +'+reward+' 🪙'+(gemBonus? ' e +'+gemBonus+' 💎 (bônus de 7 dias!)':'')+'. Volte amanhã para continuar a sequência.';
+    document.getElementById('dailyOverlay').classList.remove('hidden');
+  }catch(e){}
+}
+function updateEconomyUI(){
+  document.querySelectorAll('.coinsVal').forEach(el=> el.textContent = coins);
+  document.querySelectorAll('.gemsVal').forEach(el=> el.textContent = gems);
+}
+function canAfford(price){ if(!price) return true; return price.coins? coins>=price.coins : gems>=price.gems; }
+function buyCue(i){
+  const s = CUE_SKINS[i];
+  if(ownedCues.includes(i) || !canAfford(s.price)) return false;
+  if(s.price.coins) coins -= s.price.coins; else gems -= s.price.gems;
+  ownedCues.push(i); saveEconomy(); updateEconomyUI(); return true;
+}
+loadEconomy();
+
+/* ---------- Estatísticas e conquistas ---------- */
+let stats = { shots:0, pots:0, matches:0, wins:0, losses:0, streak:0, bestStreak:0, tutorialDone:false, tournamentWins:0, clockWins:0, bestMultiPot:0, dailyStreakBest:0, unlocked:[] };
+function loadStats(){
+  try{ const s = localStorage.getItem('snk_stats'); if(s) stats = Object.assign(stats, JSON.parse(s)); }catch(e){}
+}
+function saveStats(){ try{ localStorage.setItem('snk_stats', JSON.stringify(stats)); }catch(e){} }
+const ACHIEVEMENTS = [
+  { id:'first_win', icon:'🏅', name:'Primeira Vitória', desc:'Vença 1 partida', cond:s=> s.wins>=1 },
+  { id:'streak3',   icon:'🔥', name:'Em Chamas', desc:'3 vitórias seguidas', cond:s=> s.bestStreak>=3 },
+  { id:'streak5',   icon:'⚡', name:'Imparável', desc:'5 vitórias seguidas', cond:s=> s.bestStreak>=5 },
+  { id:'sharp',     icon:'🎯', name:'Atirador de Elite', desc:'60%+ de acerto em 20+ tacadas', cond:s=> s.shots>=20 && (s.pots/s.shots)>=0.6 },
+  { id:'marathon',  icon:'🏃', name:'Maratonista', desc:'100 tacadas no total', cond:s=> s.shots>=100 },
+  { id:'legend',    icon:'👑', name:'Lenda da Sinuca', desc:'10 vitórias no total', cond:s=> s.wins>=10 },
+  { id:'trained',   icon:'🎓', name:'Bem Treinado', desc:'Conclua o tutorial', cond:s=> s.tutorialDone },
+  { id:'champion',  icon:'🏆', name:'Campeão de Torneio', desc:'Vença um torneio local', cond:s=> s.tournamentWins>=1 },
+  { id:'collector', icon:'🎒', name:'Colecionador', desc:'Tenha 6 tacos diferentes', cond:s=> ownedCues.length>=6 },
+  { id:'gold_cue',  icon:'✨', name:'Taco Lendário', desc:'Adquira o taco Dourado Lendário', cond:s=> ownedCues.includes(CUE_SKINS.findIndex(c=>c.id==='lendario')) },
+  { id:'clockwin',  icon:'⏱', name:'Raio', desc:'Vença uma partida Contra o Relógio', cond:s=> s.clockWins>=1 },
+  { id:'doublepot', icon:'💥', name:'Caçapa Dupla', desc:'Encaçape 2 bolas numa só tacada', cond:s=> s.bestMultiPot>=2 },
+  { id:'loyal',     icon:'📅', name:'Fiel ao Jogo', desc:'3 dias seguidos jogando', cond:s=> s.dailyStreakBest>=3 }
+];
+function checkAchievements(){
+  let unlockedNew = [];
+  ACHIEVEMENTS.forEach(a=>{ if(!stats.unlocked.includes(a.id) && a.cond(stats)){ stats.unlocked.push(a.id); unlockedNew.push(a); } });
+  if(unlockedNew.length){
+    saveStats(); coins += 15*unlockedNew.length; saveEconomy(); updateEconomyUI();
+    unlockedNew.forEach((a,i)=> setTimeout(()=> showTurnBanner(a.icon+' Conquista: '+a.name+' (+15 🪙)'), i*1800));
+  }
+}
+function recordShot(pottedCount){
+  if(!lastShotWasPlayer) return;
+  stats.shots++; if(pottedCount>0) stats.pots++;
+  if(pottedCount>stats.bestMultiPot) stats.bestMultiPot = pottedCount;
+  saveStats(); checkAchievements();
+}
+function recordMatchResult(iWon, isClock){
+  stats.matches++; if(iWon){ stats.wins++; stats.streak++; stats.bestStreak=Math.max(stats.bestStreak,stats.streak); if(isClock) stats.clockWins++; } else { stats.losses++; stats.streak=0; }
+  saveStats(); checkAchievements();
+}
+function buildStatsUI(){
+  const acc = stats.shots? Math.round(100*stats.pots/stats.shots) : 0;
+  document.getElementById('statsBody').innerHTML = `
+    <div class="statrow"><span>Tacadas</span><b>${stats.shots}</b></div>
+    <div class="statrow"><span>Bolas encaçapadas</span><b>${stats.pots}</b></div>
+    <div class="statrow"><span>Taxa de acerto</span><b>${acc}%</b></div>
+    <div class="statrow"><span>Partidas</span><b>${stats.matches}</b></div>
+    <div class="statrow"><span>Vitórias / Derrotas</span><b>${stats.wins} / ${stats.losses}</b></div>
+    <div class="statrow"><span>Sequência atual</span><b>${stats.streak}</b></div>
+    <div class="statrow"><span>Melhor sequência</span><b>${stats.bestStreak}</b></div>`;
+  const grid = document.getElementById('achGrid'); grid.innerHTML='';
+  ACHIEVEMENTS.forEach(a=>{
+    const unlocked = stats.unlocked.includes(a.id);
+    const div = document.createElement('div'); div.className='ach'+(unlocked?' unlocked':'');
+    div.innerHTML = `<div class="ach-icon">${unlocked? a.icon : '🔒'}</div><div class="ach-name">${a.name}</div><div class="ach-desc">${a.desc}</div>`;
+    grid.appendChild(div);
+  });
+}
+loadStats();
+if(!ownedCues.includes(cueSkinIdx)) cueSkinIdx = ownedCues[0]||0;
+function drawCueShape(c, len, skin){
+  const segs = [
+    {x0:-len, x1:-len*0.78, w0:9, w1:8, wood:true},
+    {x0:-len*0.78, x1:-len*0.55, w0:8, w1:7, color:skin.wrap}
+  ];
+  if(skin.team){
+    segs.push({x0:-len*0.55, x1:-len*0.315, w0:7, w1:5, color:skin.wood[0]});
+    segs.push({x0:-len*0.315, x1:-len*0.08, w0:5, w1:3.2, color:skin.wood[2]});
+  } else segs.push({x0:-len*0.55, x1:-len*0.08, w0:7, w1:3.2, wood:true});
+  segs.push({x0:-len*0.08, x1:-len*0.02, w0:3.2, w1:3.6, color:'#f2ede0'});
+  segs.push({x0:-len*0.02, x1:0, w0:3.6, w1:2.6, color:skin.tip});
+  segs.forEach(s=>{
+    c.beginPath(); c.moveTo(s.x0,-s.w0/2); c.lineTo(s.x1,-s.w1/2); c.lineTo(s.x1,s.w1/2); c.lineTo(s.x0,s.w0/2); c.closePath();
+    if(s.wood){ const g=c.createLinearGradient(s.x0,0,s.x1,0); g.addColorStop(0,skin.wood[0]); g.addColorStop(.55,skin.wood[1]); g.addColorStop(1,skin.wood[2]); c.fillStyle=g; }
+    else c.fillStyle = s.color;
+    c.fill();
+    const sheen = c.createLinearGradient(0,-Math.max(s.w0,s.w1)/2,0,Math.max(s.w0,s.w1)/2);
+    sheen.addColorStop(0,'rgba(255,255,255,.35)'); sheen.addColorStop(.35,'rgba(255,255,255,0)'); sheen.addColorStop(1,'rgba(0,0,0,.3)');
+    c.fillStyle = sheen; c.fill();
+    c.strokeStyle='rgba(0,0,0,.35)'; c.lineWidth=0.6; c.stroke();
+  });
+  const ringX = skin.team? [-len*0.78,-len*0.55,-len*0.315,-len*0.08,-len*0.02] : [-len*0.78,-len*0.55,-len*0.08,-len*0.02];
+  ringX.forEach(x=>{ c.beginPath(); c.moveTo(x,-4.2); c.lineTo(x,4.2); c.strokeStyle=skin.rings; c.lineWidth=1.1; c.stroke(); });
+  c.beginPath(); c.moveTo(-len,-4.5); c.lineTo(-len,4.5); c.strokeStyle='rgba(0,0,0,.5)'; c.lineWidth=2; c.stroke();
+}
+function buildCustomizeUI(){
+  updateEconomyUI();
+  const cg = document.getElementById('cueGrid'); cg.innerHTML='';
+  CUE_SKINS.forEach((s,i)=>{
+    const owned = ownedCues.includes(i);
+    const div = document.createElement('div'); div.className='swatch'+(i===cueSkinIdx?' selected':'')+(owned?'':' locked');
+    const c = document.createElement('canvas'); c.width=140; c.height=40;
+    const cx = c.getContext('2d'); cx.translate(122,20); drawCueShape(cx,104,s);
+    const label = document.createElement('span'); label.textContent = s.name;
+    div.appendChild(c); div.appendChild(label);
+    if(!owned){
+      const tag = document.createElement('span'); tag.className='pricetag';
+      tag.textContent = '🔒 '+(s.price.coins? ('🪙'+s.price.coins) : ('💎'+s.price.gems));
+      div.appendChild(tag);
+    }
+    div.addEventListener('click', ()=>{
+      if(!ownedCues.includes(i)){
+        if(buyCue(i)){ buildCustomizeUI(); cueSkinIdx=i; buildCustomizeUI(); }
+        else { div.classList.add('shake'); setTimeout(()=>div.classList.remove('shake'),400); }
+        return;
+      }
+      cueSkinIdx=i; [...cg.children].forEach(ch=>ch.classList.remove('selected')); div.classList.add('selected');
+    });
+    cg.appendChild(div);
+  });
+  const tg = document.getElementById('tableGrid'); tg.innerHTML='';
+  TABLE_SKINS.forEach((s,i)=>{
+    const div = document.createElement('div'); div.className='swatch'+(i===tableSkinIdx?' selected':'');
+    const felt = document.createElement('div'); felt.className='felt';
+    felt.style.background = 'linear-gradient(180deg,'+s.felt[0]+','+s.felt[1]+')';
+    felt.style.border = '3px solid '+s.rail[0];
+    const label = document.createElement('span'); label.textContent = s.name;
+    div.appendChild(felt); div.appendChild(label);
+    div.addEventListener('click', ()=>{ applyTableSkin(i); if(mode==='online' && roomApi) roomApi.emit('table', i); [...tg.children].forEach(ch=>ch.classList.remove('selected')); div.classList.add('selected'); });
+    tg.appendChild(div);
+  });
+}
+function applyTableSkin(i){ tableSkinIdx = i; }
+document.getElementById('openCustomize').addEventListener('click', ()=>{ buildCustomizeUI(); menuHome.classList.add('hidden'); menuCustomize.classList.remove('hidden'); });
+document.getElementById('customizeBack').addEventListener('click', ()=>{ menuCustomize.classList.add('hidden'); menuHome.classList.remove('hidden'); });
+const menuStats = document.getElementById('menuStats');
+document.getElementById('openStats').addEventListener('click', ()=>{ buildStatsUI(); menuHome.classList.add('hidden'); menuStats.classList.remove('hidden'); });
+document.getElementById('statsBack').addEventListener('click', ()=>{ menuStats.classList.add('hidden'); menuHome.classList.remove('hidden'); });
+const moreMenu = document.getElementById('moreMenu'), moreBtn = document.getElementById('moreBtn');
+moreBtn.addEventListener('click', ()=> moreMenu.classList.toggle('hidden'));
+document.addEventListener('pointerdown', e=>{ if(!moreMenu.classList.contains('hidden') && !moreMenu.contains(e.target) && e.target!==moreBtn) moreMenu.classList.add('hidden'); });
+const muteBtn = document.getElementById('muteBtn');
+muteBtn.textContent = muted? '🔇 Som: Mudo' : '🔊 Som: Ligado';
+muteBtn.addEventListener('click', ()=>{
+  muted = !muted; muteBtn.textContent = muted? '🔇 Som: Mudo' : '🔊 Som: Ligado';
+  try{ localStorage.setItem('snk_muted', muted?'1':'0'); }catch(e){}
+  moreMenu.classList.add('hidden');
+});
+document.getElementById('tableBtn').addEventListener('click', ()=>{
+  tableSkinIdx = (tableSkinIdx+1)%TABLE_SKINS.length;
+  if(mode==='online' && roomApi) roomApi.emit('table', tableSkinIdx);
+  moreMenu.classList.add('hidden');
+});
+/* ---------- Emojis de reação ---------- */
+const EMOTES = ['👍','😂','😮','😡','🔥','🎉','😢','🎱'];
+const emotePanel = document.getElementById('emotePanel');
+EMOTES.forEach(ch=>{
+  const b = document.createElement('button'); b.textContent = ch;
+  b.addEventListener('click', ()=>{ sendEmoji(ch); moreMenu.classList.add('hidden'); emotePanel.classList.add('hidden'); });
+  emotePanel.appendChild(b);
+});
+document.getElementById('emoteBtn').addEventListener('click', ()=> emotePanel.classList.toggle('hidden'));
+function spawnEmoji(ch){
+  const wrap = document.querySelector('.table-wrap');
+  const el = document.createElement('div'); el.className='floaty'; el.textContent = ch;
+  el.style.left = (30+Math.random()*40)+'%'; el.style.bottom = '8%';
+  wrap.appendChild(el);
+  setTimeout(()=> el.remove(), 1300);
+}
+function sendEmoji(ch){ spawnEmoji(ch); if(mode==='online' && roomApi) roomApi.emit('emoji', ch); }
+/* ---------- Sair da partida ---------- */
+const exitOverlay = document.getElementById('exitOverlay');
+document.getElementById('exitBtn').addEventListener('click', ()=>{ moreMenu.classList.add('hidden'); if(mode) exitOverlay.classList.remove('hidden'); });
+document.getElementById('exitCancel').addEventListener('click', ()=> exitOverlay.classList.add('hidden'));
+document.getElementById('exitConfirm').addEventListener('click', ()=>{ exitOverlay.classList.add('hidden'); backToMenu(); });
+
+/* ---------- Estado das bolas ---------- */
+let balls = [];
+function nineOrder(){
+  const rest=[2,3,4,5,6,7,8];
+  for(let i=rest.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [rest[i],rest[j]]=[rest[j],rest[i]]; }
+  const o=[1]; let k=0;
+  for(let i=1;i<9;i++) o.push(i===4 ? 9 : rest[k++]); // 1 na ponta, 9 no centro do diamante
+  return o;
+}
+function rack(){
+  balls = [];
+  balls.push({id:'cue', x:W*0.25, y:H/2, vx:0, vy:0, sunk:false, spin:{x:0,y:0}, slide:0});
+  const startX = W*0.68, startY = H/2, gap = R*2.02;
+  const rows = nineBall ? [1,2,3,2,1] : [1,2,3,4,5];
+  // ordem oficial aproximada: 8 no centro (linha 3, meio), cantos traseiros com um sólido e uma listrada
+  const order = nineBall ? nineOrder() : [1, 9,2, 3,8,10, 11,4,12,5, 6,13,14,7,15];
+  let idx=0;
+  for(let r=0;r<rows.length;r++){
+    const count = rows[r], colX = startX + r*gap*0.87;
+    const totalH = (count-1)*gap;
+    for(let k=0;k<count;k++){
+      const y = startY - totalH/2 + k*gap;
+      balls.push({id:order[idx++], x:colX, y:y, vx:0, vy:0, sunk:false, spin:{x:0,y:0}, slide:0});
+    }
+  }
+}
+rack();
+
+/* ---------- Tutorial interativo ---------- */
+function setupScene(cuePos, objBalls){
+  balls = [{id:'cue', x:cuePos.x, y:cuePos.y, vx:0,vy:0, sunk:false, spin:{x:0,y:0}, slide:0}];
+  objBalls.forEach(o=> balls.push({id:o.id, x:o.x, y:o.y, vx:0,vy:0, sunk:false, spin:{x:0,y:0}, slide:0}));
+}
+function tutBallGone(id){ const b = balls.find(x=>x.id===id); return b && (b.sunk || b.pocketing); }
+const TUTORIAL_STEPS = [
+  { text:'Arraste a partir da bola branca para mirar, puxe mais para dar força e solte para tacar. Encaçape a bola amarela.',
+    setup:()=> setupScene({x:W*0.3,y:H/2}, [{id:1,x:W*0.58,y:H/2}]), check:()=> tutBallGone(1) },
+  { text:'Força: a bola alvo está longe — puxe bastante o taco pra ter potência suficiente de chegar até a caçapa.',
+    setup:()=> setupScene({x:W*0.16,y:H*0.28}, [{id:2,x:W*0.52,y:H*0.78}]), check:()=> tutBallGone(2) },
+  { text:'Efeito: toque no círculo "EFEITO" e arraste para CIMA antes de tacar — isso dá "seguida", fazendo a bola branca continuar andando depois da batida. Encaçape a bola usando efeito.',
+    setup:()=> setupScene({x:W*0.3,y:H/2}, [{id:3,x:W*0.55,y:H/2}]), check:()=> tutBallGone(3) && tutSpinUsed },
+  { text:'Tabelas: a bola quica na borda como um espelho. Essa bola só tem caçapa de um lado — jogue usando pelo menos uma tabela.',
+    setup:()=> setupScene({x:W*0.5,y:H*0.25}, [{id:4,x:W*0.5,y:H*0.6}]), check:()=> tutBallGone(4) && tutCushionTouched }
+];
+let tutStep = 0;
+function tutProgressDots(){
+  const el = document.getElementById('tutProgress'); el.innerHTML='';
+  TUTORIAL_STEPS.forEach((_,i)=>{ const d=document.createElement('div'); d.className='tut-dot'+(i<tutStep?' done':''); el.appendChild(d); });
+}
+function loadTutorialStep(){
+  TUTORIAL_STEPS[tutStep].setup();
+  document.getElementById('tutText').textContent = TUTORIAL_STEPS[tutStep].text;
+  tutProgressDots();
+}
+function startTutorial(){
+  mode = 'tutorial'; tutStep = 0; menu.classList.add('hidden');
+  document.getElementById('tutBar').classList.remove('hidden');
+  loadTutorialStep();
+  const app = document.getElementById('app');
+  app.style.opacity='0'; app.style.transition='opacity .5s ease';
+  requestAnimationFrame(()=>requestAnimationFrame(()=> app.style.opacity='1'));
+  fitCanvas();
+  if(!loopRunning){ loopRunning = true; loop(); }
+}
+function resolveTutorialShot(){
+  const passed = TUTORIAL_STEPS[tutStep].check();
+  if(passed){
+    tutStep++;
+    if(tutStep>=TUTORIAL_STEPS.length){ finishTutorial(); return; }
+    document.getElementById('tutText').textContent = 'Mandou bem! Próximo passo...';
+    tutProgressDots();
+    setTimeout(loadTutorialStep, 1200);
+  } else {
+    document.getElementById('tutText').textContent = 'Quase lá — tenta de novo. '+TUTORIAL_STEPS[tutStep].text;
+    setTimeout(()=> TUTORIAL_STEPS[tutStep].setup(), 900);
+  }
+}
+function finishTutorial(){
+  document.getElementById('tutBar').classList.add('hidden');
+  stats.tutorialDone = true; saveStats(); checkAchievements();
+  coins += 30; saveEconomy(); updateEconomyUI();
+  winTitle.textContent = 'Tutorial concluído! 🎓';
+  winText.textContent = 'Você aprendeu mira, força, efeito e tabelas. +30 🪙 de recompensa!';
+  winOverlay.classList.remove('hidden'); sndWin();
+}
+document.getElementById('openTutorial').addEventListener('click', ()=>{ document.getElementById('openTutorial').classList.remove('pulse'); startTutorial(); });
+document.getElementById('tutSkip').addEventListener('click', ()=>{ document.getElementById('tutBar').classList.add('hidden'); backToMenu(); });
+
+const PLAY = { x0:RAIL, y0:RAIL, x1:W-RAIL, y1:H-RAIL };
+const pockets = [
+  {x:PLAY.x0, y:PLAY.y0},{x:W/2,y:PLAY.y0-4},{x:PLAY.x1,y:PLAY.y0},
+  {x:PLAY.x0, y:PLAY.y1},{x:W/2,y:PLAY.y1+4},{x:PLAY.x1,y:PLAY.y1}
+];
+const POCKET_R = 20;
+function findSafeSpot(px,py){
+  const clear = (x,y)=> !balls.some(b=> b.id!=='cue' && !b.sunk && !b.pocketing && Math.hypot(b.x-x,b.y-y) < R*2.3);
+  if(clear(px,py)) return {x:px,y:py};
+  for(let r=R*3; r<320; r+=R*2){
+    for(let a=0;a<360;a+=24){
+      const rad=a*Math.PI/180, x=px+Math.cos(rad)*r, y=py+Math.sin(rad)*r;
+      if(x>PLAY.x0+R+2 && x<PLAY.x1-R-2 && y>PLAY.y0+R+2 && y<PLAY.y1-R-2 && clear(x,y)) return {x,y};
+    }
+  }
+  return {x:px,y:py};
+}
+
+/* ---------- Jogadores / turnos / modo ---------- */
+const players = [ {name:'Jogador 1', tray:[], group:null}, {name:'Jogador 2', tray:[], group:null} ];
+let turn = 0, mode = null, myIndex = null, botLevel = 'medium', roomApi = null, gameOver = false;
+let clockTime = 18, clockTimer = null;
+function resetClock(){ clockTime = 18; updateClockUI(); }
+function updateClockUI(){ document.getElementById('clockVal').textContent = clockTime; document.getElementById('clockRing').classList.toggle('warn', clockTime<=5); }
+function startClockTimer(){
+  clearInterval(clockTimer);
+  clockTimer = setInterval(()=>{
+    if(mode!=='clock' || gameOver || moving || strike || (mode==='online' && false)) return;
+    clockTime--; updateClockUI();
+    if(clockTime<=5 && clockTime>0) sndTick();
+    if(clockTime<=0) handleClockTimeout();
+  }, 1000);
+}
+function handleClockTimeout(){
+  aim=null; pf.style.width='0%';
+  turn = 1-turn; resetClock();
+  showTurnBanner('Tempo esgotado! Vez de '+players[turn].name);
+  hint.textContent = players[turn].name+', sua vez.'; renderTrays();
+}
+function showTurnBanner(text){
+  let b = document.getElementById('turnBanner');
+  if(!b){ b = document.createElement('div'); b.id='turnBanner'; b.className='turnbanner'; document.querySelector('.table-wrap').appendChild(b); }
+  b.textContent = text; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+  clearTimeout(showTurnBanner._t); showTurnBanner._t = setTimeout(()=> b.classList.remove('show'), 1700);
+}
+let pottedThisTurn = [], scratched = false, firstContact = false;
+
+function renderTrays(){
+  for(let i=0;i<2;i++){
+    const nm = players[i].name || ('Jogador '+(i+1));
+    document.getElementById('pname'+i).textContent = nm + (players[i].group? (players[i].group==='solid'?' · Lisas':' · Listradas') : '');
+    document.getElementById('pscore'+i).textContent = players[i].tray.filter(n=> nineBall || n!==8).length;
+    document.getElementById('avatar'+i).textContent = nm.charAt(0).toUpperCase();
+    document.getElementById('pbadge'+i).classList.toggle('active', turn===i && !gameOver);
+  }
+  const bt = document.getElementById('ballTray'); bt.innerHTML='';
+  for(let n=1;n<=(nineBall?9:15);n++){
+    const owner = players[0].tray.includes(n)?0:(players[1].tray.includes(n)?1:-1);
+    const slot = document.createElement('div');
+    slot.className = 'slot'+(owner>-1?' potted p'+owner:'');
+    if(owner>-1){ const c=document.createElement('canvas'); c.width=32; c.height=32; c.getContext('2d').drawImage(sprites[n],0,0,32,32); slot.appendChild(c); }
+    else slot.textContent = n;
+    bt.appendChild(slot);
+  }
+  turnInfo.textContent = (gameOver? 'Fim de partida' : (players[turn].name+' · tacada '+shotCount));
+}
+
+let cueRespawning = false;
+function inputAllowed(){
+  if(gameOver || moving || strike || cueRespawning) return false;
+  if(mode==='bot' && turn===1) return false;
+  if(mode==='online' && myIndex!==turn) return false;
+  return true;
+}
+
+/* ---------- Interação ---------- */
+let aim = null, spin = {x:0,y:0}, moving = false, strike = null;
+const MAXPULL = 190, MAXSPEED = 26;
+function cueBall(){ return balls[0]; }
+function toLogical(clientX, clientY){
+  const r = cv.getBoundingClientRect();
+  return { x:(clientX-r.left)*(W/r.width), y:(clientY-r.top)*(H/r.height) };
+}
+let tutCushionTouched = false, tutSpinUsed = false, lastShotWasPlayer = false;
+function doShoot(ang, power, sp, broadcast, isPlayer){
+  const cb = cueBall();
+  cb.vx = Math.cos(ang)*power*MAXSPEED; cb.vy = Math.sin(ang)*power*MAXSPEED;
+  cb.spin = { x: sp.x*1.6, y: sp.y*1.6 };
+  cb.slide = SLIDE_FRAMES;
+  const gs = players[turn] && players[turn].group;
+  shotInfo = { lowest: lowestBall(), ownLeft: gs ? ownLeftFor(gs) : true };
+  firstHitId = null; inHand = false;
+  tutCushionTouched = false; tutSpinUsed = Math.abs(sp.x)>0.1 || Math.abs(sp.y)>0.1;
+  lastShotWasPlayer = !!isPlayer;
+  sndStrike(power); shotCount++; shotWatchdog = 0;
+  if(broadcast && roomApi) roomApi.emit('shot', {ang, power, spin: sp, cx:cb.x, cy:cb.y});
+}
+cv.addEventListener('pointerdown', e=>{
+  if(!inputAllowed()) return;
+  audio(); initRoll();
+  const p = toLogical(e.clientX, e.clientY);
+  if(inHand){ const c0 = cueBall(); if(Math.hypot(p.x-c0.x, p.y-c0.y) < R*3.2){ dragCue = true; cv.setPointerCapture(e.pointerId); return; } }
+  aim = { px:p.x, py:p.y, rawx:p.x, rawy:p.y, active:true };
+  cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener('pointermove', e=>{ if(dragCue){ moveCueTo(toLogical(e.clientX,e.clientY)); return; } if(aim && aim.active){ const p=toLogical(e.clientX,e.clientY); aim.rawx=p.x; aim.rawy=p.y; } });
+window.addEventListener('pointerup', ()=>{
+  if(dragCue){ dragCue = false; return; }
+  if(!aim || !aim.active) return;
+  const cb = cueBall();
+  aim.px = aim.rawx; aim.py = aim.rawy;
+  const dx = cb.x-aim.px, dy = cb.y-aim.py;
+  const dist = Math.min(Math.hypot(dx,dy), MAXPULL);
+  const power = dist/MAXPULL;
+  aim.active = false;
+  if(power > 0.06){
+    strike = { ang: Math.atan2(dy,dx), power, spin: {...spin}, pull: R+16+dist, applied:false, t0: performance.now(), isPlayer:true };
+    hint.textContent = 'Tacada!';
+  }
+  aim = null; pf.style.width='0%';
+  spin = {x:0,y:0}; dot.style.left='12.5px'; dot.style.top='12.5px';
+});
+const pad = document.getElementById('spinPad'), dot = document.getElementById('spinDot');
+function setSpin(clientX, clientY){
+  const r = pad.getBoundingClientRect();
+  let x = (clientX-r.left-r.width/2)/(r.width/2), y = (clientY-r.top-r.height/2)/(r.height/2);
+  const m = Math.hypot(x,y); if(m>1){x/=m;y/=m;}
+  spin = {x,y}; dot.style.left = (12.5+x*10)+'px'; dot.style.top = (12.5+y*10)+'px';
+}
+let padDrag=false;
+pad.addEventListener('pointerdown', e=>{ padDrag=true; setSpin(e.clientX,e.clientY); pad.setPointerCapture(e.pointerId); });
+pad.addEventListener('pointermove', e=>{ if(padDrag) setSpin(e.clientX,e.clientY); });
+pad.addEventListener('pointerup', ()=> padDrag=false);
+
+/* ---------- Bot ---------- */
+function lineClear(x1,y1,x2,y2,excludeIds){
+  const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
+  if(len<1) return true;
+  const ux=dx/len, uy=dy/len;
+  for(const b of balls){
+    if(b.sunk || b.pocketing || excludeIds.includes(b.id)) continue;
+    const t = (b.x-x1)*ux + (b.y-y1)*uy;
+    if(t<=2 || t>=len-2) continue;
+    const px=x1+ux*t, py=y1+uy*t;
+    if(Math.hypot(b.x-px,b.y-py) < R*2.05) return false;
+  }
+  return true;
+}
+function moveCueTo(p){
+  const cb = cueBall();
+  const x = Math.max(PLAY.x0+R, Math.min(PLAY.x1-R, p.x)), y = Math.max(PLAY.y0+R, Math.min(PLAY.y1-R, p.y));
+  if(balls.some(b=> b.id!=='cue' && !b.sunk && !b.pocketing && Math.hypot(b.x-x,b.y-y) < R*2+1)) return;
+  cb.x = x; cb.y = y; cb.vx = 0; cb.vy = 0;
+}
+// avalia as melhores tacadas a partir de (cx,cy): considera obstáculos e o ângulo de corte
+function evalShots(cx, cy, targets){
+  let best = null, bestClear = null;
+  targets.forEach(t=> pockets.forEach(p=>{
+    const dx=t.x-p.x, dy=t.y-p.y, dd=Math.hypot(dx,dy);
+    if(dd<1) return;
+    const ghostX=t.x+(dx/dd)*R*2, ghostY=t.y+(dy/dd)*R*2;
+    const vx=ghostX-cx, vy=ghostY-cy, vd=Math.hypot(vx,vy)||1;
+    const cos = (vx*(-dx)+vy*(-dy))/(vd*dd);   // 1 = tacada reta, <0.12 = corte impossível
+    if(cos < 0.12) return;
+    const score = vd + dd - cos*140;
+    const clear = lineClear(cx,cy,ghostX,ghostY,['cue',t.id]) && lineClear(t.x,t.y,p.x,p.y,['cue',t.id]);
+    const cand = { t, p, ghostX, ghostY, score, vd, dd };
+    if(clear && (!bestClear || score < bestClear.score)) bestClear = cand;
+    if(!best || score < best.score) best = cand;
+  }));
+  return { best, bestClear };
+}
+function botTargets(){
+  let targets = balls.filter(b=>!b.sunk && !b.pocketing && b.id!=='cue');
+  if(nineBall){ const lo = lowestBall(); return targets.filter(b=>b.id===lo); }
+  targets = targets.filter(b=>b.id!==8);
+  const g = players[1].group;
+  if(g){
+    const mine = targets.filter(b=> (b.id<=7) === (g==='solid'));
+    if(mine.length) targets = mine;
+    else { const eight = balls.find(b=>b.id===8 && !b.sunk && !b.pocketing); targets = eight? [eight] : targets; }
+  }
+  return targets;
+}
+// bola na mão: o bot procura a posição com a melhor tacada livre
+function botPlaceCue(targets){
+  const cb = cueBall(); let best = null;
+  for(let x=PLAY.x0+R+8; x<PLAY.x1-R-8; x+=20) for(let y=PLAY.y0+R+8; y<PLAY.y1-R-8; y+=20){
+    if(balls.some(b=> b.id!=='cue' && !b.sunk && !b.pocketing && Math.hypot(b.x-x,b.y-y) < R*2.3)) continue;
+    const r = evalShots(x,y,targets);
+    if(r.bestClear && (!best || r.bestClear.score < best.score)) best = { x, y, score:r.bestClear.score };
+  }
+  if(best){ cb.x = best.x; cb.y = best.y; }
+  else { const sp = findSafeSpot(cb.x,cb.y); cb.x = sp.x; cb.y = sp.y; }
+  cb.vx = 0; cb.vy = 0;
+}
+function botMove(){
+  const targets = botTargets();
+  if(!targets.length) return;
+  if(inHand){ botPlaceCue(targets); inHand = false; }
+  const cb = cueBall();
+  const r = evalShots(cb.x, cb.y, targets);
+  const chosen = r.bestClear || r.best; // prefere tacada sem obstrução
+  let ang, total;
+  if(chosen){ ang = Math.atan2(chosen.ghostY-cb.y, chosen.ghostX-cb.x); total = chosen.vd + chosen.dd; }
+  else { const t = targets[0]; ang = Math.atan2(t.y-cb.y, t.x-cb.x); total = Math.hypot(t.x-cb.x, t.y-cb.y); }
+  const err = {easy:0.32, medium:0.13, hard:0.035}[botLevel];
+  ang += (Math.random()*2-1)*err;
+  let power = Math.min(1, 0.32 + total/640);
+  power += (Math.random()*2-1)*{easy:0.25,medium:0.12,hard:0.05}[botLevel];
+  power = Math.max(0.25, Math.min(1, power));
+  hint.textContent = players[1].name+' está mirando...';
+  setTimeout(()=>{ strike = { ang, power, spin:{x:0,y:0}, pull: R+16+power*MAXPULL, applied:false, t0: performance.now(), isPlayer:false }; }, 550);
+}
+
+/* ---------- Física ---------- */
+const SLIDE_FRICTION = 0.952, ROLL_FRICTION = 0.991, SLIDE_FRAMES = 16, STOP_V = 0.05;
+let shotWatchdog = 0;
+function stepPhysics(){
+  let maxV = 0;
+  for(const b of balls){ if(!b.sunk && !b.pocketing) maxV = Math.max(maxV, Math.hypot(b.vx,b.vy)); }
+  const N = Math.min(32, Math.max(1, Math.ceil(maxV/0.8)));   // subpassos: nenhuma bola anda mais que ~0,8px por vez
+  let anyMoving = false, totalSpeed = 0;
+  for(let sub=0; sub<N; sub++){
+    const r = physicsSub(1/N, sub===N-1);
+    anyMoving = anyMoving || r.moving; if(sub===0) totalSpeed = r.speed;
+  }
+  finishStep(anyMoving, totalSpeed);
+}
+function physicsSub(dt, lastSub){
+  let anyMoving = false, totalSpeed = 0;
+  for(const b of balls){
+    if(b.sunk || b.pocketing) continue;
+    const speed = Math.hypot(b.vx,b.vy); totalSpeed += speed;
+    if(speed>STOP_V){
+      anyMoving = true;
+      // fase de deslize (logo após tacada/colisão, atrito forte) vs. rolamento verdadeiro (atrito suave)
+      const fric = Math.pow(b.slide>0 ? SLIDE_FRICTION : ROLL_FRICTION, dt);
+      if(b.slide>0 && lastSub) b.slide--;
+      b.x += b.vx*dt; b.y += b.vy*dt; b.vx *= fric; b.vy *= fric;
+      if(Math.hypot(b.vx,b.vy) < STOP_V){ b.vx=0; b.vy=0; }
+    } else { b.vx=0; b.vy=0; }
+  }
+  for(const b of balls){
+    if(b.sunk || b.pocketing) continue;
+    if(b.x - R < PLAY.x0){ b.x=PLAY.x0+R; if(b.vx<0){ b.vx*=-0.86; b.vy+=b.spin.x*0.3; b.spin.x*=0.5; b.slide=Math.max(b.slide,6); sndCushion(Math.abs(b.vx)); if(mode==='tutorial') tutCushionTouched=true;} }
+    if(b.x + R > PLAY.x1){ b.x=PLAY.x1-R; if(b.vx>0){ b.vx*=-0.86; b.vy-=b.spin.x*0.3; b.spin.x*=0.5; b.slide=Math.max(b.slide,6); sndCushion(Math.abs(b.vx)); if(mode==='tutorial') tutCushionTouched=true;} }
+    if(b.y - R < PLAY.y0){ b.y=PLAY.y0+R; if(b.vy<0){ b.vy*=-0.86; b.vx-=b.spin.x*0.3; b.spin.x*=0.5; b.slide=Math.max(b.slide,6); sndCushion(Math.abs(b.vy)); if(mode==='tutorial') tutCushionTouched=true;} }
+    if(b.y + R > PLAY.y1){ b.y=PLAY.y1-R; if(b.vy>0){ b.vy*=-0.86; b.vx+=b.spin.x*0.3; b.spin.x*=0.5; b.slide=Math.max(b.slide,6); sndCushion(Math.abs(b.vy)); if(mode==='tutorial') tutCushionTouched=true;} }
+  }
+  for(let i=0;i<balls.length;i++) for(let j=i+1;j<balls.length;j++){
+    const a=balls[i], b=balls[j]; if(a.sunk||b.sunk||a.pocketing||b.pocketing) continue;
+    const dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy);
+    if(d < R*2 && d>0){
+      const nx=dx/d, ny=dy/d, overlap=R*2-d;
+      a.x -= nx*overlap/2; a.y -= ny*overlap/2; b.x += nx*overlap/2; b.y += ny*overlap/2;
+      const aPreVx=a.vx, aPreVy=a.vy, bPreVx=b.vx, bPreVy=b.vy;
+      const av=a.vx*nx+a.vy*ny, bv=b.vx*nx+b.vy*ny, impact=Math.abs(av-bv);
+      a.vx += (bv-av)*nx; a.vy += (bv-av)*ny; b.vx += (av-bv)*nx; b.vy += (av-bv)*ny;
+      a.slide = Math.max(a.slide,5); b.slide = Math.max(b.slide,5); // o choque reintroduz um pouco de deslize nas duas bolas
+      if(a.id==='cue'||b.id==='cue'){
+        firstContact = true; if(firstHitId===null) firstHitId = (a.id==='cue' ? b.id : a.id);
+        const cb = a.id==='cue'? a : b;
+        const preVx = a.id==='cue'? aPreVx : bPreVx, preVy = a.id==='cue'? aPreVy : bPreVy;
+        const pspd = Math.hypot(preVx,preVy);
+        // seguida/retorno só existe de verdade se a bola branca ainda estava deslizando (não rolando) ao bater — como na sinuca real
+        if(cb.slide>0 && pspd>0.5 && Math.abs(cb.spin.y)>0.02){
+          const dirx=preVx/pspd, diry=preVy/pspd, follow=-cb.spin.y*2.8;
+          cb.vx += dirx*follow; cb.vy += diry*follow;
+        }
+        if(Math.abs(cb.spin.x)>0.02 && pspd>0.5){ // efeito lateral desvia (throw) a trajetória no instante do contato, não antes
+          const px=-preVy/pspd, py=preVx/pspd;
+          cb.vx += px*cb.spin.x*0.9; cb.vy += py*cb.spin.x*0.9;
+        }
+        cb.spin.x = 0; cb.spin.y = 0; // efeito é consumido no primeiro contato, como na sinuca real
+      }
+      if(impact>0.3) sndBall(impact);
+    }
+  }
+  for(const b of balls){
+    if(b.sunk || b.pocketing) continue;
+    for(const p of pockets){
+      if(Math.hypot(b.x-p.x,b.y-p.y) < POCKET_R){
+        b.pocketing = { px:p.x, py:p.y, sx:b.x, sy:b.y, t0:performance.now() };
+        b.vx=0; b.vy=0; sndPocket();
+        if(b.id==='cue'){ scratched=true; cueRespawning=true; setTimeout(()=>{ const spot=findSafeSpot(W*0.25,H/2); b.sunk=false; b.pocketing=null; b.x=spot.x; b.y=spot.y; b.vx=0; b.vy=0; cueRespawning=false; },760); }
+        else pottedThisTurn.push(b.id);
+      }
+    }
+  }
+  return { moving:anyMoving, speed:totalSpeed };
+}
+function finishStep(anyMoving, totalSpeed){
+  if(actx) updateRoll(totalSpeed);
+  if(anyMoving){
+    shotWatchdog++;
+    if(shotWatchdog > 420){ // ~7s de segurança: força o fim da tacada se algo travar
+      balls.forEach(b=>{ b.vx=0; b.vy=0; b.spin={x:0,y:0}; b.slide=0; });
+      anyMoving = false; shotWatchdog = 0;
+    }
+  } else shotWatchdog = 0;
+  const wasMoving = moving; moving = anyMoving;
+  if(wasMoving && !moving){ if(mode==='tutorial') resolveTutorialShot(); else resolveTurn(); }
+}
+/* ---------- Regras: 8 Ball e 9 Ball ---------- */
+function ownerOf(n){ return players.findIndex(p=> p.group === (n<=7 ? 'solid' : 'stripe')); }
+function lowestBall(){
+  let m = null;
+  for(const b of balls){ if(b.id==='cue' || b.sunk || b.pocketing) continue; if(m===null || b.id<m) m = b.id; }
+  return m;
+}
+function ownLeftFor(g){
+  return balls.some(b=> b.id!=='cue' && b.id!==8 && !b.sunk && !b.pocketing && ((b.id<=7) === (g==='solid')));
+}
+function turnHint(){
+  if(mode==='practice') return 'Treino livre — capriche na mira!';
+  let t = players[turn].name+', sua vez.';
+  if(inHand && !(mode==='bot' && turn===1)) t += ' Bola na mão: arraste a branca para onde quiser.';
+  if(nineBall) t += ' Acerte primeiro a bola '+lowestBall()+'.';
+  return t;
+}
+function finishMatch(winner, baseText){
+  gameOver = true; clearInterval(clockTimer); scratched = false; inHand = false;
+  const iWon = mode==='online' ? myIndex===winner : winner===0;
+  recordMatchResult(iWon, mode==='clock');
+  let reward = '';
+  if(mode!=='online' || myIndex===winner){ coins += 25; const gg = Math.random()<0.25; if(gg) gems+=1; reward = ' +25 🪙'+(gg?' +1 💎':''); }
+  else { coins += 8; reward = ' +8 🪙'; }
+  saveEconomy(); updateEconomyUI();
+  baseText += reward;
+  document.getElementById('playAgain').onclick = backToMenu;
+  document.getElementById('playAgain').textContent = 'Voltar ao menu';
+  if(tournament.active){
+    if(winner===0){
+      tournament.round++;
+      if(tournament.round>=tournament.levels.length){
+        tournament.active=false; stats.tournamentWins++; saveStats();
+        coins+=80; gems+=2; saveEconomy(); updateEconomyUI(); checkAchievements();
+        winTitle.textContent = '🏆 Campeão do Torneio!';
+        winText.textContent = 'Venceu os 3 bots em sequência! +80 🪙 +2 💎. '+baseText;
+      } else {
+        winTitle.textContent = 'Rodada '+tournament.round+'/3 vencida!';
+        winText.textContent = baseText+' Prepare-se para o próximo oponente.';
+        document.getElementById('playAgain').textContent = 'Próxima rodada ▶';
+        document.getElementById('playAgain').onclick = ()=>{ winOverlay.classList.add('hidden'); startTournamentRound(); };
+      }
+    } else {
+      tournament.active=false;
+      winTitle.textContent = 'Eliminado no Torneio';
+      winText.textContent = 'Caiu na rodada '+(tournament.round+1)+' de 3. '+baseText;
+    }
+  } else {
+    winTitle.textContent = players[winner].name+' venceu!';
+    winText.textContent = baseText;
+  }
+  winOverlay.classList.remove('hidden'); sndWin(); renderTrays();
+}
+// encerra a tacada: decide de quem é a vez, aplica bola na mão em caso de falta e aciona o bot
+function endTurn(foul, reason, keepTurn, extraBanner){
+  const prevTurn = turn;
+  pottedThisTurn = []; scratched = false; firstContact = false; firstHitId = null;
+  if(!keepTurn) turn = 1-turn;
+  if(foul) inHand = true;
+  if(mode==='clock') resetClock();
+  renderTrays();
+  hint.textContent = (foul ? 'Falta ('+reason+'). ' : '') + turnHint();
+  if(foul){ showTurnBanner('Falta! Bola na mão para '+players[turn].name); sndTurn(); }
+  else if(extraBanner){ showTurnBanner(extraBanner); if(turn!==prevTurn) sndTurn(); }
+  else if(turn!==prevTurn){ showTurnBanner(players[turn].name+', sua vez!'); sndTurn(); }
+  if(mode==='bot' && turn===1 && !gameOver){
+    const tryBotMove = ()=>{ if(cueRespawning) setTimeout(tryBotMove,100); else botMove(); };
+    tryBotMove();
+  }
+}
+function resolveNine(){
+  const shooter = turn, hitId = firstHitId, wasScratch = scratched, lowest = shotInfo.lowest;
+  const foul = wasScratch || hitId===null || hitId!==lowest;
+  const reason = wasScratch ? 'branca encaçapada' : (hitId===null ? 'não tocou em nenhuma bola' : 'tinha que acertar a bola '+lowest+' primeiro');
+  const nineDown = pottedThisTurn.includes(9);
+  const potted = pottedThisTurn.filter(n=> n!==9 || !foul);
+  const tray = players[shooter].tray;
+  potted.forEach(n=>{ if(!tray.includes(n)) tray.push(n); });
+  tray.sort((a,b)=>a-b);
+  if(nineDown && !foul){ finishMatch(shooter, 'Encaçapou a bola 9 numa tacada legal!'); return; }
+  if(nineDown && foul){ // a 9 volta para a mesa no ponto do pé
+    const nb = balls.find(b=>b.id===9);
+    if(nb){ const spot = findSafeSpot(W*0.68, H/2); nb.x = spot.x; nb.y = spot.y; nb.vx = 0; nb.vy = 0; nb.sunk = false; nb.pocketing = null; }
+  }
+  endTurn(foul, reason, !foul && potted.length>0, (nineDown && foul) ? 'Bola 9 voltou para a mesa' : null);
+}
+function resolveTurn(){
+  recordShot(pottedThisTurn.length);
+  if(nineBall){ resolveNine(); return; }
+  const shooter = turn, opp = 1-turn, hitId = firstHitId, wasScratch = scratched;
+  const eightDown = pottedThisTurn.includes(8);
+  const potted = pottedThisTurn.filter(n=>n!==8);
+
+  // ---- Treino livre: sem adversário nem grupos
+  if(mode==='practice'){
+    pottedThisTurn.forEach(n=>{ if(!players[0].tray.includes(n)) players[0].tray.push(n); });
+    players[0].tray.sort((a,b)=>a-b); renderTrays();
+    pottedThisTurn = []; scratched = false; firstContact = false; firstHitId = null;
+    if(eightDown){
+      showTurnBanner('Mesa concluída! 🎉'); sndWin(); coins+=5; saveEconomy(); updateEconomyUI();
+      setTimeout(()=>{ rack(); pottedThisTurn=[]; players[0].tray=[]; players[0].group=null; players[1].group=null; renderTrays(); hint.textContent='Treino livre — capriche na mira!'; }, 1300);
+    } else hint.textContent = wasScratch ? 'Falta! Bola branca voltou à mesa.' : 'Treino livre — capriche na mira!';
+    return;
+  }
+
+  // ---- Falta? (branca encaçapada, não tocou em nada, ou tocou primeiro na bola errada)
+  const g = players[shooter].group;
+  let illegalFirst;
+  if(hitId===null) illegalFirst = true;
+  else if(g) illegalFirst = shotInfo.ownLeft ? (hitId===8 || ((hitId<=7) !== (g==='solid'))) : (hitId!==8);
+  else illegalFirst = (hitId===8);
+  const foul = wasScratch || illegalFirst;
+  const reason = wasScratch ? 'branca encaçapada' : (hitId===null ? 'não tocou em nenhuma bola' : (g && !shotInfo.ownLeft ? 'tinha que acertar a bola 8 primeiro' : 'bola errada primeiro'));
+
+  // ---- Mesa aberta: o primeiro grupo encaçapado (sem falta) define lisas/listradas
+  if(!players[0].group && !players[1].group && !foul && potted.length){
+    const fb = potted[0];
+    players[shooter].group = fb<=7 ? 'solid' : 'stripe';
+    players[opp].group = players[shooter].group==='solid' ? 'stripe' : 'solid';
+  }
+
+  // ---- Cada bola encaçapada vai para o DONO do grupo dela:
+  // quem é lisa não pontua com listrada (e vice-versa) — a bola conta para o adversário e a vez passa.
+  let ownPotted = 0, oppPotted = 0;
+  potted.forEach(n=>{
+    let o = ownerOf(n); if(o<0) o = shooter;
+    if(!players[o].tray.includes(n)) players[o].tray.push(n);
+    if(o===shooter) ownPotted++; else oppPotted++;
+  });
+  if(eightDown && !players[shooter].tray.includes(8)) players[shooter].tray.push(8);
+  players[0].tray.sort((a,b)=>a-b); players[1].tray.sort((a,b)=>a-b);
+  renderTrays();
+
+  // ---- Bola 8
+  if(eightDown){
+    const legal = !!g && !shotInfo.ownLeft && !foul;
+    const winner = legal ? shooter : opp;
+    const why = legal ? 'Limpou o grupo e fechou na bola 8!' :
+      (wasScratch ? 'Bola 8 caiu com falta (branca encaçapada) — vitória do oponente.' :
+      (foul ? 'Bola 8 caiu numa tacada com falta — vitória do oponente.' : 'Bola 8 caiu antes da hora — vitória do oponente.'));
+    finishMatch(winner, why); return;
+  }
+
+  const keepTurn = !foul && ownPotted>0;
+  let extra = null;
+  if(oppPotted>0) extra = 'Bola do adversário caiu'+(keepTurn ? ' (conta para ele)' : ' — perdeu a vez');
+  endTurn(foul, reason, keepTurn, extra);
+}
+
+/* ---------- Render ---------- */
+let railPatternCanvas = null, railPatternSkinIdx = -1;
+function buildRailPattern(){
+  const c = document.createElement('canvas'); c.width=W; c.height=H;
+  const g = c.getContext('2d'), sk = TABLE_SKINS[tableSkinIdx];
+  const railGrad = g.createLinearGradient(0,0,0,H);
+  railGrad.addColorStop(0,sk.rail[0]); railGrad.addColorStop(1,sk.rail[1]);
+  g.fillStyle = railGrad; g.fillRect(0,0,W,H);
+  function diamond(cx,cy,s,col){ g.save(); g.translate(cx,cy); g.rotate(Math.PI/4); g.fillStyle=col; g.fillRect(-s/2,-s/2,s,s); g.restore(); }
+  const step = 24, cols = [sk.rim, 'rgba(255,255,255,0.3)'];
+  for(let x=step/2, i=0; x<W; x+=step, i++){ diamond(x,11,9,cols[i%2]); diamond(x,H-11,9,cols[i%2]); }
+  for(let y=step/2+22, i=0; y<H-22; y+=step, i++){ diamond(11,y,9,cols[i%2]); diamond(W-11,y,9,cols[i%2]); }
+  g.strokeStyle = 'rgba(0,0,0,.4)'; g.lineWidth=3; g.strokeRect(1.5,1.5,W-3,H-3);
+  railPatternCanvas = c; railPatternSkinIdx = tableSkinIdx;
+}
+function drawTable(){
+  const sk = TABLE_SKINS[tableSkinIdx];
+  if(railPatternSkinIdx !== tableSkinIdx) buildRailPattern();
+  ctx.drawImage(railPatternCanvas, 0, 0);
+  const feltGrad = ctx.createRadialGradient(W/2,H/2,50,W/2,H/2,W*0.7);
+  feltGrad.addColorStop(0,sk.felt[0]); feltGrad.addColorStop(1,sk.felt[1]);
+  ctx.fillStyle = feltGrad; ctx.fillRect(PLAY.x0,PLAY.y0,PLAY.x1-PLAY.x0,PLAY.y1-PLAY.y0);
+  ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(W*0.32,PLAY.y0); ctx.lineTo(W*0.32,PLAY.y1); ctx.stroke();
+  for(const p of pockets){
+    ctx.beginPath(); ctx.arc(p.x,p.y,POCKET_R,0,7); ctx.fillStyle='#050505'; ctx.fill();
+    ctx.strokeStyle=sk.rim; ctx.lineWidth=2; ctx.stroke();
+  }
+}
+function drawBalls(){
+  for(const b of balls){ if(b.sunk || b.pocketing) continue; const spr=b.id==='cue'?sprites.cue:sprites[b.id]; ctx.drawImage(spr,b.x-R,b.y-R,R*2,R*2); }
+  if(mode && !gameOver && !moving){
+    if(nineBall){ // destaca a bola da vez no 9 Ball
+      const lo = lowestBall(), lb = balls.find(b=>b.id===lo);
+      if(lb && !lb.sunk && !lb.pocketing){ ctx.save(); ctx.strokeStyle='rgba(242,194,48,.8)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(lb.x,lb.y,R+3,0,7); ctx.stroke(); ctx.restore(); }
+    }
+    if(inHand && inputAllowed()){ // bola na mão: anel pulsante em volta da branca
+      const cb = cueBall(), pulse = 0.5+0.5*Math.sin(performance.now()/220);
+      ctx.save(); ctx.setLineDash([5,4]); ctx.strokeStyle='rgba(255,224,130,'+(0.5+0.4*pulse)+')'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(cb.x,cb.y,R+6+pulse*2,0,7); ctx.stroke(); ctx.restore();
+    }
+  }
+}
+// distância (ao longo do raio) até a tabela, com a bola de raio "pad"
+function rayWall(x,y,dx,dy,pad){
+  const tx = dx>1e-9 ? (PLAY.x1-pad-x)/dx : (dx<-1e-9 ? (PLAY.x0+pad-x)/dx : Infinity);
+  const ty = dy>1e-9 ? (PLAY.y1-pad-y)/dy : (dy<-1e-9 ? (PLAY.y0+pad-y)/dy : Infinity);
+  return Math.max(0, Math.min(tx,ty));
+}
+// linhas brancas de mira: trajetória da branca, bola-fantasma, caminho da bola alvo e desvio da branca
+function drawGuides(cb, ang){
+  const dx = Math.cos(ang), dy = Math.sin(ang), D = R*2;
+  let tHit = Infinity, hit = null;
+  for(const b of balls){
+    if(b===cb || b.sunk || b.pocketing) continue;
+    const fx = b.x-cb.x, fy = b.y-cb.y, proj = fx*dx+fy*dy;
+    if(proj<=0) continue;
+    const perp2 = fx*fx+fy*fy-proj*proj;
+    if(perp2 >= D*D) continue;
+    const t = proj - Math.sqrt(D*D-perp2);
+    if(t < tHit){ tHit = t; hit = b; }
+  }
+  const tWall = rayWall(cb.x,cb.y,dx,dy,R);
+  const seg = (x1,y1,x2,y2)=>{ ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); };
+  const ring = (x,y,r)=>{ ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.stroke(); };
+  ctx.save(); ctx.lineCap = 'round'; ctx.lineWidth = 2;
+  if(hit && tHit <= tWall){
+    const gx = cb.x+dx*tHit, gy = cb.y+dy*tHit;
+    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+    seg(cb.x,cb.y,gx,gy); ring(gx,gy,R);                     // branca até a bola-fantasma
+    const nx = (hit.x-gx)/D, ny = (hit.y-gy)/D;               // direção que a bola alvo vai tomar
+    let pk = null, pkT = Infinity;
+    for(const p of pockets){                                  // essa linha entra numa caçapa?
+      const px = p.x-hit.x, py = p.y-hit.y, proj = px*nx+py*ny;
+      if(proj<=0) continue;
+      if(Math.abs(px*ny-py*nx) < POCKET_R*0.8 && proj < pkT){ pk = p; pkT = proj; }
+    }
+    const tl = pk ? pkT : Math.min(rayWall(hit.x,hit.y,nx,ny,R), 230);
+    seg(hit.x,hit.y,hit.x+nx*tl,hit.y+ny*tl);                // caminho da bola alvo
+    if(pk){ ctx.strokeStyle='rgba(120,255,140,0.95)'; ctx.lineWidth=3; ring(pk.x,pk.y,POCKET_R+2); }
+    const dot = dx*nx+dy*ny; let tx = dx-dot*nx, ty = dy-dot*ny; const tm = Math.hypot(tx,ty);
+    if(tm > 0.1){                                             // para onde a branca desvia depois da batida
+      tx/=tm; ty/=tm;
+      const len = Math.min(rayWall(gx,gy,tx,ty,R), 30+80*tm);
+      ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.lineWidth=1.6; seg(gx,gy,gx+tx*len,gy+ty*len);
+    }
+  } else {
+    const wx = cb.x+dx*tWall, wy = cb.y+dy*tWall;
+    ctx.strokeStyle = 'rgba(255,255,255,0.95)'; seg(cb.x,cb.y,wx,wy);
+    ctx.globalAlpha = 0.6; ring(wx,wy,R); ctx.globalAlpha = 1;
+    const onX = dx!==0 && Math.abs(wx-(dx>0 ? PLAY.x1-R : PLAY.x0+R)) < 0.8;
+    const rx = onX ? -dx : dx, ry = onX ? dy : -dy;           // quique na tabela
+    const len = Math.min(rayWall(wx,wy,rx,ry,R), 130);
+    ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.lineWidth=1.6; seg(wx,wy,wx+rx*len,wy+ry*len);
+  }
+  ctx.restore();
+}
+function drawPocketingAnims(){
+  const dur = 260;
+  for(const b of balls){
+    if(!b.pocketing) continue;
+    const t = Math.min((performance.now()-b.pocketing.t0)/dur, 1), e = easeIn(t);
+    const x = b.pocketing.sx + (b.pocketing.px-b.pocketing.sx)*e;
+    const y = b.pocketing.sy + (b.pocketing.py-b.pocketing.sy)*e;
+    const scale = 1 - 0.92*e, alpha = 1 - Math.max(0,(t-0.6))/0.4;
+    const spr = b.id==='cue'?sprites.cue:sprites[b.id];
+    ctx.save(); ctx.globalAlpha = Math.max(alpha,0);
+    ctx.drawImage(spr, x-R*scale, y-R*scale, R*2*scale, R*2*scale);
+    ctx.restore();
+    if(t>=1){ b.sunk = true; if(b.id!=='cue') b.pocketing=null; }
+  }
+}
+function drawAimAndCue(){
+  if(!aim || !aim.active || moving || !inputAllowed()) return;
+  aim.px = aim.rawx; aim.py = aim.rawy;
+  const cb = cueBall();
+  const dx = cb.x-aim.px, dy = cb.y-aim.py, dist = Math.hypot(dx,dy);
+  const pull = Math.min(dist, MAXPULL), power = pull/MAXPULL;
+  pf.style.width = (power*100)+'%';
+  if(dist < 3) return;
+  const ang = Math.atan2(dy,dx);
+  ctx.save();
+  drawGuides(cb, ang);
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(cb.x,cb.y,R+3,0,7); ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.stroke();
+  const gap = R+16+pull;
+  ctx.translate(cb.x-Math.cos(ang)*gap, cb.y-Math.sin(ang)*gap); ctx.rotate(ang);
+  drawCueShape(ctx, 240, CUE_SKINS[cueSkinIdx]);
+  ctx.restore();
+  hint.textContent = 'Força: '+Math.round(power*100)+'%';
+}
+function easeIn(t){ return t*t; }
+function easeOut(t){ return 1-(1-t)*(1-t); }
+function drawStrike(){
+  if(!strike) return;
+  const elapsed = performance.now()-strike.t0, dur = 170, p = Math.min(elapsed/dur,1);
+  const cb = cueBall();
+  let gap;
+  if(p < 0.62){ gap = strike.pull*(1-easeIn(p/0.62)); }
+  else { gap = -7*easeOut((p-0.62)/0.38); }
+  if(!strike.applied && p>=0.62){ doShoot(strike.ang, strike.power, strike.spin, mode==='online', strike.isPlayer); strike.applied=true; hint.textContent='Bolas em movimento...'; }
+  ctx.save();
+  ctx.translate(cb.x-Math.cos(strike.ang)*gap, cb.y-Math.sin(strike.ang)*gap); ctx.rotate(strike.ang);
+  if(p>0.85) ctx.globalAlpha = 1-(p-0.85)/0.15;
+  drawCueShape(ctx, 240, CUE_SKINS[cueSkinIdx]);
+  ctx.restore();
+  if(p>=1) strike = null;
+}
+function loop(){ stepPhysics(); drawTable(); drawBalls(); drawPocketingAnims(); drawAimAndCue(); drawStrike(); requestAnimationFrame(loop); }
+
+/* ---------- Menu / modos ---------- */
+const localOpts = document.getElementById('localOpts'), nineOpts = document.getElementById('nineOpts');
+let pendingLocalMode = 'local';
+document.querySelectorAll('.btn').forEach(b=> b.addEventListener('click', sndClick));
+document.querySelectorAll('#modeButtons .btn[data-mode]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const m = btn.dataset.mode;
+    const own = document.getElementById('nameInput').value.trim() || 'Jogador 1';
+    players[0].name = own;
+    document.querySelectorAll('#modeButtons .btn[data-mode]').forEach(b=>b.classList.add('hidden'));
+    document.getElementById('openCustomize').classList.add('hidden');
+    document.getElementById('openTutorial').classList.add('hidden');
+    document.getElementById('openStats').classList.add('hidden');
+    nineBall = (m==='nine');
+    if(m==='nine'){ nineOpts.classList.remove('hidden'); }
+    else if(m==='local' || m==='clock'){ pendingLocalMode = m; localOpts.classList.remove('hidden'); }
+    else if(m==='bot'){ botOpts.classList.remove('hidden'); }
+    else if(m==='online'){ onlineOpts.classList.remove('hidden'); startOnline(own); }
+    else if(m==='practice'){ players[1].name='—'; startGame('practice'); }
+    else if(m==='tournament'){ tournament.active=true; tournament.round=0; startTournamentRound(); }
+  });
+});
+const tournament = { active:false, round:0, levels:['easy','medium','hard'] };
+function startTournamentRound(){
+  botLevel = tournament.levels[tournament.round];
+  players[1].name = 'Bot '+(tournament.round+1)+'/3 ('+({easy:'Fácil',medium:'Médio',hard:'Difícil'}[botLevel])+')';
+  startGame('bot');
+  showTurnBanner('Rodada '+(tournament.round+1)+' de 3 — '+players[1].name);
+}
+document.getElementById('localStart').addEventListener('click', ()=>{
+  players[1].name = document.getElementById('name2Input').value.trim() || 'Jogador 2';
+  startGame(pendingLocalMode);
+});
+document.getElementById('botStart').addEventListener('click', ()=>{
+  botLevel = document.getElementById('botLevel').value;
+  players[1].name = 'Bot ('+({easy:'Fácil',medium:'Médio',hard:'Difícil'}[botLevel])+')';
+  startGame('bot');
+});
+const LEVEL_NAME = {easy:'Fácil',medium:'Médio',hard:'Difícil'};
+document.getElementById('nineLocal').addEventListener('click', ()=>{
+  players[1].name = document.getElementById('nameNineInput').value.trim() || 'Jogador 2';
+  startGame('local');
+});
+document.getElementById('nineBot').addEventListener('click', ()=>{
+  botLevel = document.getElementById('nineLevel').value;
+  players[1].name = 'Bot ('+LEVEL_NAME[botLevel]+')';
+  startGame('bot');
+});
+function backToMenu(){
+  tournament.active = false; cueRespawning = false; scratched = false;
+  winOverlay.classList.add('hidden'); aim=null; strike=null; moving=false;
+  clearInterval(clockTimer); document.getElementById('clockWidget').classList.add('hidden');
+  document.getElementById('tutBar').classList.add('hidden');
+  nineBall=false; inHand=false; dragCue=false; firstHitId=null; rack(); shotCount=1; turn=0; gameOver=false; pottedThisTurn=[]; scratched=false; firstContact=false;
+  mode = null; myIndex = null;
+  players.forEach(p=>{ p.tray=[]; p.group=null; }); renderTrays();
+  hint.textContent = 'Escolha um modo para começar';
+  document.querySelectorAll('#modeButtons .btn[data-mode]').forEach(b=>b.classList.remove('hidden'));
+  document.getElementById('openCustomize').classList.remove('hidden');
+  document.getElementById('openTutorial').classList.remove('hidden');
+  document.getElementById('openStats').classList.remove('hidden');
+  localOpts.classList.add('hidden'); botOpts.classList.add('hidden'); onlineOpts.classList.add('hidden'); nineOpts.classList.add('hidden');
+  menuCustomize.classList.add('hidden'); menuStats.classList.add('hidden'); menuHome.classList.remove('hidden');
+  menu.classList.remove('hidden');
+}
+document.getElementById('playAgain').onclick = backToMenu;
+let loopRunning = false;
+// zera a mesa e o placar a cada partida nova (também corrige o torneio, que não reiniciava as rodadas)
+function resetMatch(){
+  rack(); turn = 0; shotCount = 1; gameOver = false; moving = false; aim = null; strike = null; cueRespawning = false;
+  pottedThisTurn = []; scratched = false; firstContact = false; firstHitId = null; inHand = false; dragCue = false;
+  players.forEach(p=>{ p.tray = []; p.group = null; });
+}
+function startGame(m){
+  mode = m; menu.classList.add('hidden'); resetMatch(); renderTrays();
+  hint.textContent = (m==='practice'? 'Treino livre — capriche na mira!' : players[turn].name+', sua vez.'+(nineBall? ' Acerte primeiro a bola 1.' : ''));
+  const clockW = document.getElementById('clockWidget');
+  if(m==='clock'){ clockW.classList.remove('hidden'); resetClock(); startClockTimer(); }
+  else { clockW.classList.add('hidden'); clearInterval(clockTimer); }
+  const app = document.getElementById('app');
+  app.style.opacity='0'; app.style.transition='opacity .5s ease';
+  requestAnimationFrame(()=>requestAnimationFrame(()=> app.style.opacity='1'));
+  showTurnBanner(m==='practice'? 'Treino livre' : (nineBall? '9 Ball · ' : '')+players[turn].name+', comece!');
+  fitCanvas();
+  if(!loopRunning){ loopRunning = true; loop(); } // nunca iniciar um segundo loop em paralelo
+}
+async function startOnline(ownName){
+  if(!window.claude || !window.claude.use){ document.getElementById('onlineStatus').textContent='Modo online indisponível neste navegador.'; return; }
+  const room = await window.claude.use('room');
+  if(!room){ document.getElementById('onlineStatus').textContent='Modo online indisponível agora. Tente o modo Bot ou 2 Jogadores.'; return; }
+  roomApi = room;
+  let opponentLeftWarned = false;
+  const myJoinTime = Date.now() + Math.random();
+  room.on('shot', data=>{ if(data.cx!==undefined){ const c=cueBall(); c.x=data.cx; c.y=data.cy; } doShoot(data.ang, data.power, data.spin, false); });
+  room.on('table', idx=>{ applyTableSkin(idx); });
+  room.on('emoji', ch=>{ spawnEmoji(ch); });
+  room.onPeers(peers=>{
+    if(!peers || peers.length<1) return;
+    let list = peers.some(p=>p.t===myJoinTime) ? peers : [...peers, {t:myJoinTime, name:ownName}];
+    list = [...list].sort((a,b)=>(a.t||0)-(b.t||0)).slice(0,2);
+    const idx = list.findIndex(p=>p.t===myJoinTime);
+    if(idx<0 || list.length<2){
+      if(mode!=='online') document.getElementById('onlineStatus').textContent = 'Aguardando oponente entrar pelo link...';
+      else if(mode==='online' && !gameOver && !opponentLeftWarned){
+        opponentLeftWarned = true;
+        showTurnBanner('⚠️ Oponente saiu da sala');
+        hint.textContent = 'O oponente desconectou. Você pode sair pelo menu "⋮".';
+      }
+      return;
+    }
+    opponentLeftWarned = false;
+    if(myIndex===null) myIndex = idx;
+    const other = list[1-idx];
+    if(mode!=='online'){
+      players[myIndex].name = ownName; players[1-myIndex].name = (other && other.name) || 'Oponente';
+      turn = 0; startGame('online');
+    }
+  });
+  room.presence({ name: ownName, t: myJoinTime });
+}
+
+fitCanvas();
+renderTrays();
+updateEconomyUI();
+document.getElementById('splashBall').getContext('2d').drawImage(sprites[8],0,0,56,56);
+setTimeout(()=>{
+  const sp = document.getElementById('splash'); sp.classList.add('fadeout');
+  setTimeout(()=> {
+    sp.remove(); checkDailyReward();
+    if(isNewPlayer) document.getElementById('openTutorial').classList.add('pulse');
+  }, 650);
+}, 1400);
+document.getElementById('dailyClose').addEventListener('click', ()=> document.getElementById('dailyOverlay').classList.add('hidden'));
+})();
+</script>
+</body>
+</html>
